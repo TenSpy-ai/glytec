@@ -1,69 +1,58 @@
-## Datagen Python SDK (how to use)
+# CLAUDE.md
 
-### Purpose
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Use the Datagen Python SDK (`datagen-python-sdk`) when you need to run DataGen-connected tools from a local Python codebase (apps, scripts, cron jobs). Use Datagen MCP for interactive discovery/debugging of tool names and schemas.
+## Project Overview
 
-### Prerequisites
+Glytec AI SDR — an AI-powered Sales Development Representative targeting hospital systems for Glytec's insulin management solutions. The project uses the Datagen SDK/MCP to orchestrate outreach tools (email, CRM, etc.) and operates against prospect data in `data/`.
 
-- Install: `pip install datagen-python-sdk`
-- Auth: set `DATAGEN_API_KEY` in the environment
+## Environment
 
-### Mental model (critical)
+- Python 3.11, virtualenv at `.venv/`
+- Activate: `source .venv/bin/activate`
+- Auth: `DATAGEN_API_KEY` must be set in `.env`
+- Install SDK: `pip install datagen-python-sdk`
 
-- You execute tools by alias name: `client.execute_tool("<tool_alias>", params)`
-- Tool aliases are commonly:
-  - `mcp_<Provider>_<tool_name>` for connected MCP servers (Gmail/Linear/Neon/etc.)
-  - First-party DataGen tools like `listTools`, `searchTools`, `getToolDetails`
-- Always be schema-first: confirm params via `getToolDetails` before calling a tool from code.
+## Data Files (`data/`)
 
-### Recommended workflow (always follow)
+| File | Contents |
+|------|----------|
+| `AI SDR_Facility List_1.23.26.csv` | Hospital facilities with beds, revenue, EHR, ICU stats, geo, ownership |
+| `AI SDR_Facility List_Supplemental Data_1.23.26.csv` | Same facilities with rep assignments and additional clinical detail |
+| `AI SDR_Parent Account List_1.23.26.csv` | Ranked parent health systems with bed counts, segment, opportunity $ |
+| `AI SDR_ICP Titles_2.12.26.csv` | Ideal Customer Profile titles with department, category, intent score, job level |
+| `AI SDR_Glytec_New Story_Magnetic Messaging Framework_1.28.26.docx` | Messaging framework for outreach |
 
-1) Assume `DATAGEN_API_KEY` is not available until verified; then check if it exists (if missing, ask user to set it)
-2) Import and create the SDK client:
-   - `from datagen_sdk import DatagenClient`
-   - `client = DatagenClient()`
-3) Discover tool alias with `searchTools` (don't guess)
-4) Confirm tool schema with `getToolDetails`
-5) Execute with `client.execute_tool(tool_alias, params)`
-6) Handle errors:
-   - 401/403: missing/invalid API key OR the target MCP server isn't connected/authenticated in DataGen dashboard
-   - 400/422: wrong params -> re-check `getToolDetails` and retry
+Key join fields: `Definitive ID` links facilities across CSVs; `Highest Level Parent` groups facilities under parent systems.
 
-### Minimal example
+## Datagen SDK (tool execution in code)
 
-```python
-import os
-from datagen_sdk import DatagenClient
+- Execute tools by alias: `client.execute_tool("<tool_alias>", params)`
+- Tool aliases: `mcp_<Provider>_<tool_name>` for connected MCP servers, or first-party like `listTools`, `searchTools`, `getToolDetails`
+- **Always be schema-first**: confirm params via `getToolDetails` before calling a tool
 
-if not os.getenv("DATAGEN_API_KEY"):
-    raise RuntimeError("DATAGEN_API_KEY not set")
+### Required workflow
 
-client = DatagenClient()
-result = client.execute_tool(
-    "mcp_Gmail_gmail_send_email",
-    {
-        "to": "user@example.com",
-        "subject": "Hello",
-        "body": "Hi from DataGen!",
-    },
-)
-print(result)
-```
+1. Verify `DATAGEN_API_KEY` exists (ask user if missing)
+2. Create client: `from datagen_sdk import DatagenClient; client = DatagenClient()`
+3. Discover tool alias with `searchTools` (never guess)
+4. Confirm schema with `getToolDetails`
+5. Execute with `client.execute_tool(tool_alias, params)`
+6. Errors: 401/403 = bad key or unconnected MCP server; 400/422 = wrong params, re-check schema
 
-### Discovery examples (don't skip)
+### Quick reference
 
 ```python
 from datagen_sdk import DatagenClient
-
 client = DatagenClient()
 
-# List all tools
-tools = client.execute_tool("listTools")
-
-# Search by intent
-matches = client.execute_tool("searchTools", {"query": "send email"})
-
-# Get schema for a tool alias
-details = client.execute_tool("getToolDetails", {"tool_name": "mcp_Gmail_gmail_send_email"})
+client.execute_tool("listTools")                                    # all tools
+client.execute_tool("searchTools", {"query": "send email"})         # search by intent
+client.execute_tool("getToolDetails", {"tool_name": "mcp_Gmail_gmail_send_email"})  # schema
 ```
+
+## Datagen MCP vs SDK
+
+- **MCP**: interactive discovery/debugging of tool names and schemas
+- **SDK**: execution in scripts and apps via `DatagenClient`
+- In Claude Code (has shell access), prefer writing and running local SDK scripts over `executeCode`

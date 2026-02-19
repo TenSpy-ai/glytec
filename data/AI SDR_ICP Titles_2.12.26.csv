@@ -1,0 +1,67 @@
+Department,Title,Category,Intent Score,Function Type,Job Level
+Clinical Informatics,Associate CMIO,Decision Maker,80,Clinical,Other
+Clinical Informatics,Clinical Informaticist,Influencer,70,Clinical,Individual Contributor
+Clinical Informatics,Director of Clinical Informatics,Decision Maker,85,Clinical,Director
+Clinical Informatics,Chief Medical Information Officer (CMIO),Decision Maker,90,Clinical,Executive
+Compliance,Chief Compliance Officer,Decision Maker,75,Business,Executive
+Critical Care,ICU Quality Coordinator,Influencer,60,Clinical,Mid-Level
+Critical Care,Chief of Critical Care,Decision Maker,80,Clinical,Executive
+Critical Care,"Medical Director, ICU",Decision Maker,80,Clinical,Director
+Critical Care,Intensivist,Influencer,60,Clinical,Individual Contributor
+Critical Care,ICU Clinical Nurse Specialist,Influencer,65,Clinical,Mid-Level
+Data & Analytics,Chief Data Officer,Decision Maker,75,Business,Executive
+Diabetes Services,Certified Diabetes Care and Education Specialist (CDCES),Influencer,70,Clinical,Mid-Level
+Diabetes Services,Diabetes Clinical Nurse Specialist,Influencer,70,Clinical,Mid-Level
+Diabetes Services,"Manager, Diabetes Education Program",Influencer,65,Clinical,Director
+Diversity,"Chief Diversity, Equity & Inclusion Officer (CDEIO)",Influencer,60,Business,Executive
+Endocrinology,Diabetes Program Coordinator,Influencer,65,Clinical,Mid-Level
+Endocrinology,Advanced Practice Provider - Endocrinology,Influencer,60,Clinical,Other
+Endocrinology,Endocrinologist,Influencer,75,Clinical,Other
+Endocrinology,"Medical Director, Diabetes Services",Decision Maker,85,Clinical,Director
+Endocrinology,Chief of Endocrinology,Decision Maker,90,Clinical,Executive
+Executive Leadership,Chief Operating Officer (COO),Decision Maker,90,Business,Executive
+Executive Leadership,Chief Executive Officer (CEO),Decision Maker,95,Business,Executive
+Finance,Chief Financial Officer (CFO),Decision Maker,90,Business,Executive
+Hospital Medicine,"Vice President, Clinical Transformation",Decision Maker,80,Clinical,Director
+Hospital Medicine,"Vice President, Evidence Based Medicine",Decision Maker,80,Clinical,Director
+Hospital Medicine,Chair of Medicine,Decision Maker,80,Clinical,Director
+Hospital Medicine,Director of Inpatient Medicine,Decision Maker,80,Clinical,Director
+Hospital Medicine,Hospitalist,Influencer,65,Clinical,Individual Contributor
+Hospital Medicine,Associate Chief of Hospital Medicine,Decision Maker,75,Clinical,Executive
+Hospital Medicine,Medical Director of Hospital Medicine,Decision Maker,85,Clinical,Director
+Hospital Medicine,Clinical Operations Lead - Hospitalist Service,Influencer,70,Clinical,Individual Contributor
+Innovation,Chief Innovation Officer,Decision Maker,80,Business,Executive
+Nursing,Chief Nursing Officer (CNO),Decision Maker,95,Clinical,Executive
+Nursing,Clinical Nurse Specialist - Med/Surg,Influencer,65,Clinical,Mid-Level
+Nursing,Inpatient Nursing Supervisor,Influencer,60,Clinical,Other
+Nursing,Nursing Clinical Practice Leader - Acute Care,Influencer,65,Clinical,Other
+Nursing,Nurse Educator - Diabetes,Influencer,70,Clinical,Mid-Level
+Nursing,Inpatient RN - Med/Surg or ICU,Influencer,50,Clinical,Other
+Nursing,Assistant Director of Nursing - Quality and Safety,Influencer,70,Clinical,Director
+Nursing,Director of Inpatient Nursing,Decision Maker,85,Clinical,Director
+Nursing Informatics,Director of Nursing Informatics,Decision Maker,80,Clinical,Director
+Nursing Informatics,Clinical Nurse Informaticist,Influencer,70,Clinical,Individual Contributor
+Patient Safety,Risk Manager - Clinical Services,Influencer,65,Clinical,Director
+Patient Safety,Safety & Quality Program Manager,Influencer,65,Clinical,Director
+Patient Safety,Patient Safety Officer,Influencer,70,Clinical,Other
+Pharmacy,"Director, Pharmacy",Influencer,60,Clinical,Mid-Level
+Pharmacy,Chief Pharmacy Officer,Decision Maker,85,Clinical,Executive
+Pharmacy,Pharmacy Clinical Coordinator,Influencer,60,Clinical,Mid-Level
+Pharmacy,Director of Clinical Pharmacy Services,Decision Maker,80,Clinical,Director
+Pharmacy,Clinical Pharmacist - Endocrine,Influencer,60,Clinical,Individual Contributor
+Pharmacy,Pharmacy Informatics Lead,Influencer,65,Clinical,Other
+Quality Improvement,Director of Quality Improvement,Decision Maker,80,Clinical,Director
+Quality Improvement,Chief Quality Officer (CQO),Decision Maker,90,Clinical,Executive
+Quality Improvement,Inpatient Quality Improvement Nurse,Influencer,65,Clinical,Individual Contributor
+Quality Improvement,Quality Improvement Coordinator,Influencer,65,Clinical,Mid-Level
+Strategy,Chief Strategy Officer (CSO),Decision Maker,85,Business,Executive
+Surgery,Transplant Surgeon,Influencer,70,Clinical,Individual Contributor
+Surgery,Chief of Transplant Surgery,Decision Maker,80,Clinical,Executive
+Surgery,Vascular Surgeon,Influencer,70,Clinical,Individual Contributor
+Surgery,Chief of Vascular Surgery,Decision Maker,80,Clinical,Executive
+Surgery,Surgical ICU Director,Decision Maker,85,Clinical,Director
+Surgery,Chief of General Surgery,Decision Maker,80,Clinical,Executive
+Surgery,Cardiac Surgeon,Influencer,75,Clinical,Individual Contributor
+Surgery,Chief of Cardiothoracic Surgery,Decision Maker,85,Clinical,Executive
+Surgery,General Surgeon,Influencer,65,Clinical,Individual Contributor
+Surgery,Perioperative Medical Director,Decision Maker,85,Clinical,Director

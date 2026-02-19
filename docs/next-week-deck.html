@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glytec AI SDR — Week of Feb 17</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  .deck {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding: 6vh 8vw;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .slide.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  /* Slide backgrounds */
+  .slide-title { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+  .slide-body  { background: #0f172a; }
+  .slide-end   { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 0.3em;
+    color: #f8fafc;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+    font-weight: 600;
+    margin-bottom: 0.8em;
+    color: #f8fafc;
+  }
+
+  .subtitle {
+    font-size: clamp(1rem, 2vw, 1.4rem);
+    color: #94a3b8;
+    font-weight: 400;
+    margin-bottom: 0.5em;
+  }
+
+  .accent { color: #38bdf8; }
+  .accent-green { color: #4ade80; }
+  .accent-amber { color: #fbbf24; }
+  .accent-red { color: #f87171; }
+  .dim { color: #64748b; }
+
+  .tag {
+    display: inline-block;
+    padding: 0.2em 0.7em;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.2em;
+  }
+  .tag-blue  { background: #1e3a5f; color: #38bdf8; }
+  .tag-green { background: #14532d; color: #4ade80; }
+  .tag-amber { background: #422006; color: #fbbf24; }
+
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  ul li {
+    padding: 0.5em 0;
+    padding-left: 1.5em;
+    position: relative;
+    font-size: clamp(0.95rem, 1.8vw, 1.2rem);
+    line-height: 1.5;
+    color: #cbd5e1;
+  }
+
+  ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.85em;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #38bdf8;
+  }
+
+  ul li.green::before { background: #4ade80; }
+  ul li.amber::before { background: #fbbf24; }
+  ul li.red::before   { background: #f87171; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 0.5rem;
+  }
+
+  .card {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #334155;
+  }
+
+  .card h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.6em;
+    color: #f8fafc;
+  }
+
+  .card p, .card li {
+    font-size: 0.95rem;
+    color: #94a3b8;
+    line-height: 1.5;
+  }
+
+  .timeline {
+    display: flex;
+    gap: 0;
+    margin-top: 1.5rem;
+    position: relative;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 1.1rem;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #334155;
+    z-index: 0;
+  }
+
+  .tl-item {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tl-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #38bdf8;
+    margin: 0.4rem auto 0.7rem;
+    border: 3px solid #0f172a;
+  }
+
+  .tl-dot.done { background: #4ade80; }
+  .tl-dot.current { background: #fbbf24; box-shadow: 0 0 0 4px rgba(251,191,36,0.25); }
+  .tl-dot.future { background: #475569; }
+
+  .tl-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94a3b8;
+  }
+  .tl-date {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 0.2em;
+  }
+
+  /* Navigation */
+  .nav {
+    position: fixed;
+    bottom: 2rem;
+    right: 3rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 100;
+  }
+
+  .nav button {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #94a3b8;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .nav button:hover {
+    background: #334155;
+    color: #f8fafc;
+  }
+
+  .counter {
+    position: fixed;
+    bottom: 2.4rem;
+    left: 3rem;
+    font-size: 0.8rem;
+    color: #475569;
+    z-index: 100;
+  }
+
+  .big-number {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 700;
+    color: #38bdf8;
+    line-height: 1;
+    margin-bottom: 0.1em;
+  }
+
+  .callout {
+    background: #1e293b;
+    border-left: 4px solid #fbbf24;
+    border-radius: 0 8px 8px 0;
+    padding: 1rem 1.5rem;
+    margin-top: 1.5rem;
+    font-size: 0.95rem;
+    color: #cbd5e1;
+  }
+
+  .callout strong { color: #fbbf24; }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide slide-title active" data-slide="0">
+    <p class="subtitle">Glytec AI SDR</p>
+    <h1>Week of <span class="accent">Feb 17</span></h1>
+    <p class="subtitle" style="margin-top: 0.5em;">Phase 1 — Foundation Sprint</p>
+    <div class="timeline" style="max-width: 600px; margin-top: 3rem;">
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-label">Alignment</div>
+        <div class="tl-date">Feb 13</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot current"></div>
+        <div class="tl-label">v1 Build</div>
+        <div class="tl-date">Feb 17–20</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot future"></div>
+        <div class="tl-label">v1 Launch</div>
+        <div class="tl-date">Feb 20</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot future"></div>
+        <div class="tl-label">Campaign Live</div>
+        <div class="tl-date">Feb 23</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: The Goal -->
+  <div class="slide slide-body" data-slide="1">
+    <span class="tag tag-blue">Goal</span>
+    <h2>Ship v1 infrastructure by <span class="accent">Thursday Feb 20</span></h2>
+    <p class="subtitle" style="max-width: 700px;">A working end-to-end pipeline: from target account selection through personalized outbound to campaign reporting — ready for a live pilot on Feb 23.</p>
+    <div class="grid" style="margin-top: 2rem;">
+      <div class="card">
+        <h3>Pilot Scope</h3>
+        <ul>
+          <li>10 target accounts</li>
+          <li>~100 contacts across ICP titles</li>
+          <li>Programmatic 1:1 cold outreach</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Success = </h3>
+        <ul>
+          <li class="green">Campaign sends without manual steps</li>
+          <li class="green">Replies route to the right person</li>
+          <li class="green">Clayton can see results in a dashboard</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Day-by-Day -->
+  <div class="slide slide-body" data-slide="2">
+    <span class="tag tag-amber">Plan</span>
+    <h2>Day by day</h2>
+    <ul style="max-width: 750px;">
+      <li class="amber"><strong>Sun Feb 16</strong>&ensp;<span class="dim">—</span>&ensp;Clayton provides campaign details <span class="dim">(dependency)</span></li>
+      <li><strong>Mon Feb 17</strong>&ensp;<span class="dim">—</span>&ensp;System access + onboarding; audit current state (Salesforce, Clay, SalesForge); finalize tool connections</li>
+      <li><strong>Tue Feb 18</strong>&ensp;<span class="dim">—</span>&ensp;Document existing processes + tech stack; design AI outbound infrastructure; design "washing machine" data hygiene process</li>
+      <li><strong>Wed Feb 19</strong>&ensp;<span class="dim">—</span>&ensp;Build contact enrichment workflow (1,700 parent accounts, 6K children); enrich + validate pilot contacts; build outbound sequences + personalization layer</li>
+      <li class="green"><strong>Thu Feb 20</strong>&ensp;<span class="dim">—</span>&ensp;<strong>v1 infrastructure release</strong> (contacts + outbound + reporting) — demo to Clayton for signoff</li>
+      <li><strong>Fri Feb 21</strong>&ensp;<span class="dim">—</span>&ensp;Fix issues from signoff; prep campaign launch for Feb 23</li>
+    </ul>
+    <div class="callout">
+      <strong>Blocker watch:</strong> If critical tool connections (Salesforce, Clay) are delayed, v1 ships with Apollo as the interim backbone and we backfill integrations in v2.
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Dependencies -->
+  <div class="slide slide-body" data-slide="3">
+    <span class="tag tag-amber">Dependencies</span>
+    <h2>What I need to stay on track</h2>
+    <div class="grid" style="margin-top: 1rem;">
+      <div class="card">
+        <h3><span class="accent-amber">From Clayton</span></h3>
+        <ul>
+          <li class="amber">Campaign details by <strong>Feb 16 EOD</strong> (target accounts, messaging direction, send volume)</li>
+          <li class="amber">System access if not yet granted (Okta, Salesforce, Clay, SalesForge)</li>
+          <li>Confirm DH API availability with Ryan McDonald</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><span class="accent-amber">From Bryce</span></h3>
+        <ul>
+          <li class="amber">Additional knowledge base / onboarding materials</li>
+          <li>Past campaign messaging samples</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout" style="margin-top: 1.5rem;">
+      <strong>Fallback plan:</strong> Apollo is already connected and covers contact enrichment, sequences, and basic CRM. If other tools aren't ready, v1 runs on Apollo — no delay to the Feb 20 release.
+    </div>
+  </div>
+
+  <!-- SLIDE 5: What's After -->
+  <div class="slide slide-end" data-slide="4">
+    <span class="tag tag-blue">What's next</span>
+    <h2>After v1 ships</h2>
+    <ul style="max-width: 650px; margin-bottom: 2rem;">
+      <li><strong>Feb 23</strong>&ensp;—&ensp;First outbound campaign goes live</li>
+      <li><strong>Feb 27</strong>&ensp;—&ensp;Contact enrichment v1 target: 15+ contacts at 50%+ accounts</li>
+      <li><strong>Mar 6</strong>&ensp;—&ensp;v2 infrastructure release (v1 + enhancements based on pilot feedback)</li>
+      <li class="amber"><strong>Mar 12</strong>&ensp;—&ensp;Board meeting — must show tangible AI SDR results</li>
+    </ul>
+    <p class="subtitle">Sprint-based: each release feeds a live campaign, feedback loops into the next build.</p>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="counter"><span id="current">1</span> / <span id="total"></span></div>
+<div class="nav">
+  <button onclick="prev()" aria-label="Previous">&#8592;</button>
+  <button onclick="next()" aria-label="Next">&#8594;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let idx = 0;
+
+  document.getElementById('total').textContent = slides.length;
+
+  function show(i) {
+    slides.forEach(s => s.classList.remove('active'));
+    slides[i].classList.add('active');
+    document.getElementById('current').textContent = i + 1;
+  }
+
+  function next() { if (idx < slides.length - 1) show(++idx); }
+  function prev() { if (idx > 0) show(--idx); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+  });
+
+  // Touch support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glytec AI SDR — V1 Infrastructure</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0b0e14;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 40px 24px 64px;
+  }
+  .page { max-width: 980px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .header { text-align: center; margin-bottom: 52px; }
+  .header h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; color: #fff; margin-bottom: 8px; }
+  .header .tagline { font-size: 15px; color: #94a3b8; line-height: 1.6; max-width: 660px; margin: 0 auto 20px; }
+  .header .date-badge {
+    display: inline-block; background: #1a2744; color: #5b9bd5;
+    font-size: 12px; font-weight: 700; padding: 6px 18px;
+    border-radius: 20px; letter-spacing: 0.3px; border: 1px solid #2e4a7a;
+  }
+
+  /* ── Connectors ── */
+  .connector { display: flex; justify-content: center; padding: 14px 0; }
+  .connector .line {
+    width: 3px; height: 42px; border-radius: 2px;
+    background: linear-gradient(to bottom, var(--c-from, #2a3f6a), var(--c-to, #2a3f6a));
+    position: relative;
+  }
+  .connector .line::after {
+    content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+    border-left: 7px solid transparent; border-right: 7px solid transparent;
+    border-top: 8px solid var(--c-to, #2a3f6a);
+  }
+  .connector-multi { display: flex; justify-content: space-around; padding: 12px 80px; }
+  .connector-multi .line { width: 2px; height: 32px; background: #2a4a80; position: relative; }
+  .connector-multi .line::after {
+    content: ''; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%);
+    border-left: 6px solid transparent; border-right: 6px solid transparent;
+    border-top: 7px solid #3b6aaa;
+  }
+
+  /* ── Section card (shared) ── */
+  .section { border-radius: 16px; padding: 28px 30px; position: relative; overflow: hidden; }
+  .section-label { font-size: 10px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; margin-bottom: 8px; }
+  .section-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .section-desc { font-size: 14px; color: #94a3b8; line-height: 1.55; }
+
+  /* ── Dropdown ── */
+  details { margin-top: 14px; border-radius: 10px; overflow: hidden; }
+  summary {
+    cursor: pointer; font-size: 13px; font-weight: 700; color: #cbd5e1;
+    padding: 10px 16px; background: rgba(0,0,0,0.3); border-radius: 10px;
+    list-style: none; display: flex; align-items: center; gap: 8px;
+    transition: background 0.15s; user-select: none;
+  }
+  summary:hover { background: rgba(0,0,0,0.45); }
+  summary::before { content: '\25B8'; display: inline-block; transition: transform 0.2s; font-size: 11px; }
+  details[open] > summary::before { transform: rotate(90deg); }
+  summary::-webkit-details-marker { display: none; }
+  .dropdown-body {
+    padding: 16px 18px; background: rgba(0,0,0,0.2); border-radius: 0 0 10px 10px;
+    font-size: 13px; line-height: 1.7; color: #b0bdd0;
+  }
+  .dropdown-body strong { color: #e2e8f0; }
+  .dropdown-body ul { padding-left: 18px; margin-top: 6px; }
+  .dropdown-body li { margin-bottom: 4px; }
+  .dd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .dd-card { background: rgba(0,0,0,0.25); border-radius: 8px; padding: 12px 14px; border: 1px solid rgba(255,255,255,0.06); }
+  .dd-card .dd-title { font-size: 12px; font-weight: 700; color: #e2e8f0; margin-bottom: 4px; }
+  .dd-card .dd-text { font-size: 12px; color: #8a9ab5; line-height: 1.5; }
+
+  /* ── SOURCE CARDS ── */
+  .sources-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .source { background: #111827; border: 1px solid #1e293b; }
+  .source .icon {
+    width: 42px; height: 42px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; margin-bottom: 14px;
+  }
+  .src-zi .icon { background: #2a1a4a; }
+  .src-dh .icon { background: #1a3d30; }
+  .src-web .icon { background: #3d2a1a; }
+  .src-zi .section-title { color: #a78bfa; }
+  .src-dh .section-title { color: #4ecca3; }
+  .src-web .section-title { color: #e8985a; }
+
+  /* ── CLAY (big orchestrator box) ── */
+  .clay-box {
+    background: linear-gradient(135deg, #0f1a30 0%, #0c1424 100%);
+    border: 2px solid #1e3a5f;
+    border-radius: 18px; padding: 30px; position: relative;
+  }
+  .clay-box .clay-header { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .clay-box .clay-header .icon {
+    width: 48px; height: 48px; border-radius: 12px; background: #1e3a5f;
+    display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .clay-box .clay-header .section-title { color: #5b9bd5; font-size: 26px; }
+  .clay-dual-label {
+    display: flex; gap: 8px; margin-bottom: 14px; margin-top: 4px; flex-wrap: wrap;
+  }
+  .clay-dual-label span {
+    font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 6px;
+  }
+  .clay-dual-label .lbl-orch { background: #162a4a; color: #5b9bd5; }
+  .clay-dual-label .lbl-src { background: #1a2a3a; color: #7eb8f7; }
+  .clay-dual-label .lbl-wash { background: #1a2040; color: #9bb8e0; border: 1px dashed #2a4a80; }
+
+  /* ── Sub-sections inside Clay ── */
+  .clay-inner { margin-top: 18px; }
+  .clay-sub {
+    background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 20px 22px; margin-bottom: 14px;
+  }
+  .clay-sub:last-child { margin-bottom: 0; }
+  .clay-sub .sub-title { font-size: 14px; font-weight: 800; color: #7eb8f7; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .clay-sub .sub-desc { font-size: 13px; color: #8aa8d0; line-height: 1.5; }
+
+  /* ── Washer inside Clay ── */
+  .washer-inner {
+    background: rgba(30,58,95,0.15); border: 2px dashed #2a4a80;
+    border-radius: 14px; padding: 24px 22px; text-align: center;
+  }
+  .washer-inner .section-title { color: #7eb8f7; font-size: 20px; }
+  .washer-steps { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .washer-step {
+    background: rgba(0,0,0,0.35); border-radius: 8px; padding: 7px 14px;
+    font-size: 11px; font-weight: 700; color: #7eb8f7; border: 1px solid #1e3a5f;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .washer-step .num {
+    background: #1e3a5f; color: #7eb8f7; width: 20px; height: 20px; border-radius: 50%;
+    font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+  }
+  .spin { display: inline-block; animation: spin 3s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── SALESFORCE ── */
+  .sf {
+    background: linear-gradient(135deg, #141f38 0%, #0f1729 100%);
+    border: 1px solid #2e4a7a; text-align: center;
+  }
+  .sf .section-title { color: #5b9bd5; font-size: 26px; }
+  .sf-badge {
+    display: inline-block; background: #162542; color: #5b9bd5;
+    font-size: 11px; font-weight: 700; padding: 5px 16px; border-radius: 20px;
+    margin-top: 10px; letter-spacing: 0.5px; border: 1px solid #2e4a7a;
+  }
+  .sf-note {
+    margin-top: 12px; background: rgba(0,0,0,0.25); border-radius: 8px; padding: 10px 16px;
+    font-size: 12px; color: #e8b84a; border: 1px solid #4a3a20; text-align: left;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .sf-note .note-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Split row ── */
+  .split-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* ── SALESFORGE ── */
+  .forge { background: linear-gradient(135deg, #1d1232 0%, #15102a 100%); border: 1px solid #3a2660; }
+  .forge .section-title { color: #b57edc; }
+
+  /* ── REPORTING ── */
+  .report { background: linear-gradient(135deg, #1a1510 0%, #141210 100%); border: 1px solid #4a3a20; }
+  .report .section-title { color: #e8b84a; }
+  .src-tag {
+    display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+    padding: 2px 7px; border-radius: 4px; margin-top: 6px; text-transform: uppercase;
+  }
+  .src-tag.sf-tag { background: #162542; color: #5b9bd5; }
+  .src-tag.forge-tag { background: #1d1232; color: #b57edc; }
+  .src-tag.dg-tag { background: #1a2a1a; color: #6bcb77; }
+
+  /* ── AI SDR AGENT ── */
+  .agent {
+    background: linear-gradient(135deg, #111f16 0%, #0d1a12 100%);
+    border: 1px solid #1e4a2a;
+  }
+  .agent .section-title { color: #4ade80; text-align: center; }
+  .agent .section-label { text-align: center; }
+  .agent .section-desc { text-align: center; }
+
+  /* ── Agent pipeline (unfolded) ── */
+  .agent-pipeline {
+    display: grid; grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 0; align-items: stretch; margin-top: 20px;
+  }
+  .pipe-stage {
+    background: rgba(0,0,0,0.3); border-radius: 12px; padding: 18px 16px;
+    border: 1px solid #1e4a2a;
+  }
+  .pipe-stage .ps-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    color: #4ade80; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+  .pipe-stage .ps-label .ps-num {
+    background: #1e4a2a; width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; color: #4ade80;
+  }
+  .pipe-item {
+    background: rgba(0,0,0,0.25); border-radius: 8px; padding: 10px 12px;
+    margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.04);
+  }
+  .pipe-item:last-child { margin-bottom: 0; }
+  .pipe-item .pi-title { font-size: 11px; font-weight: 700; color: #e2e8f0; margin-bottom: 2px; }
+  .pipe-item .pi-src { font-size: 10px; color: #5a7a6a; }
+  .pipe-item .pi-desc { font-size: 11px; color: #7a9a88; line-height: 1.4; }
+  .pipe-arrow {
+    display: flex; align-items: center; justify-content: center; padding: 0 6px;
+    color: #2e5a3e; font-size: 20px;
+  }
+
+  /* ── Channels ── */
+  .channels { display: flex; justify-content: center; gap: 18px; margin-top: 18px; }
+  .channel {
+    background: rgba(0,0,0,0.35); border-radius: 14px; padding: 20px 28px;
+    text-align: center; border: 1px solid #1e4a2a; min-width: 170px;
+  }
+  .ch-icon { font-size: 28px; margin-bottom: 6px; }
+  .ch-name { font-size: 16px; font-weight: 800; color: #4ade80; }
+  .ch-desc { font-size: 12px; color: #7a9a88; margin-top: 4px; line-height: 1.5; }
+
+  /* ── PROSPECTS ── */
+  .prospects { text-align: center; padding: 8px 0 0; }
+  .prospect-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 10px; }
+  .dot {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: #111f16; border: 2px solid #4ade80;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .prospect-label { font-size: 13px; color: #7a9a88; }
+  .metric {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(0,0,0,0.3); border-radius: 8px;
+    padding: 4px 12px; font-size: 12px; font-weight: 700; margin: 3px 2px;
+  }
+  .metric .val { color: #fff; }
+  .metric .label { color: #64748b; font-weight: 500; }
+
+  /* ── BOTTOM BAR ── */
+  .bottom-bar {
+    margin-top: 44px; background: #111827; border: 1px solid #1e293b;
+    border-radius: 14px; padding: 24px 28px; text-align: center;
+  }
+  .bottom-bar .bar-title { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+  .bottom-bar .bar-text { font-size: 13px; color: #94a3b8; line-height: 1.6; max-width: 700px; margin: 0 auto; }
+  .action-items { display: flex; justify-content: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .action-item {
+    background: #0b0e14; border: 1px solid #2e4a7a; border-radius: 10px;
+    padding: 12px 20px; font-size: 13px; font-weight: 600; color: #5b9bd5;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .action-item .check {
+    width: 20px; height: 20px; border-radius: 50%; border: 2px solid #2e4a7a;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800; color: #5b9bd5; flex-shrink: 0;
+  }
+  .footer { text-align: center; margin-top: 36px; font-size: 11px; color: #334155; }
+
+  @media (max-width: 760px) {
+    .sources-row { grid-template-columns: 1fr; }
+    .split-row { grid-template-columns: 1fr; }
+    .agent-pipeline { grid-template-columns: 1fr; }
+    .pipe-arrow { transform: rotate(90deg); padding: 8px 0; }
+    .channels { flex-direction: column; align-items: center; }
+    .dd-grid { grid-template-columns: 1fr; }
+    .connector-multi { padding: 12px 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ████ HEADER ████ -->
+<div class="header">
+  <h1>Glytec AI SDR &mdash; V1 Infrastructure</h1>
+  <p class="tagline">
+    Three things make this work: <strong>clean data in</strong>, <strong>intelligent outreach out</strong>, and <strong>visibility across everything</strong>.<br>
+    This is the system that turns hospital data into qualified pipeline.
+  </p>
+  <span class="date-badge">V1 RELEASE &mdash; FEB 20, 2026</span>
+</div>
+
+<!-- ████ DATA SOURCES ████ -->
+<div class="sources-row">
+
+  <div class="section source src-zi">
+    <div class="icon">&#128269;</div>
+    <div class="section-label" style="color:#a78bfa;">Data Source</div>
+    <div class="section-title">ZoomInfo</div>
+    <div class="section-desc">Verified business emails, direct dials, title enrichment for Decision Maker roles</div>
+    <details>
+      <summary>What ZoomInfo delivers</summary>
+      <div class="dropdown-body">
+        ZoomInfo is the <strong>primary source for verified contact data</strong>. DH email quality is poor &mdash; ZoomInfo fills that gap with accuracy.
+        <ul>
+          <li><strong>Verified emails + direct dials</strong> &mdash; highest verification rate of any source. ZoomInfo email always wins in merge rules.</li>
+          <li><strong>C-suite &amp; Director coverage</strong> &mdash; 70&ndash;85% hit rate on Tier 1 ICP titles, 50&ndash;65% on Tier 2 Decision Makers.</li>
+          <li><strong>Title &amp; org enrichment</strong> &mdash; current title, department, company, employment history.</li>
+          <li><strong>Gap:</strong> Weak on clinical titles (CDCES, hospitalists, clinical pharmacists). That's where web scraping picks up.</li>
+        </ul>
+        <strong>60K credits available &mdash; expires March 12.</strong> Use them or lose them.
+      </div>
+    </details>
+  </div>
+
+  <div class="section source src-dh">
+    <div class="icon">&#127973;</div>
+    <div class="section-label" style="color:#4ecca3;">Data Source</div>
+    <div class="section-title">Definitive Healthcare</div>
+    <div class="section-desc">Hospital demographics, EHR vendor, financials, CMS quality, trigger signals</div>
+    <details>
+      <summary>What DH delivers</summary>
+      <div class="dropdown-body">
+        HospitalView API is the <strong>backbone for account intelligence</strong>. Static CSVs degrade daily &mdash; the API keeps everything current.
+        <div class="dd-grid">
+          <div class="dd-card">
+            <div class="dd-title">Account Scoring</div>
+            <div class="dd-text">Bed count, EHR vendor, operating margin, CMS stars, readmission rates &mdash; 5 of 6 scoring factors come from DH.</div>
+          </div>
+          <div class="dd-card">
+            <div class="dd-title">Trigger Signals</div>
+            <div class="dd-text">EHR migrations, leadership changes, quality initiatives, capital projects, RFPs. The "why now" that makes outreach timely instead of random.</div>
+          </div>
+          <div class="dd-card">
+            <div class="dd-title">Executive Contacts</div>
+            <div class="dd-text">Facility-level leadership mapped by Definitive ID. Cross-referenced with ZoomInfo for verified emails.</div>
+          </div>
+          <div class="dd-card">
+            <div class="dd-title">Segmentation</div>
+            <div class="dd-text">EHR vendor &times; financial health &times; facility size. Drives which messaging variant each account receives.</div>
+          </div>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div class="section source src-web">
+    <div class="icon">&#127760;</div>
+    <div class="section-label" style="color:#e8985a;">Data Source</div>
+    <div class="section-title">Web Scraping</div>
+    <div class="section-desc">Hospital leadership pages, press releases, department directories, org charts</div>
+    <details>
+      <summary>Why scraping matters</summary>
+      <div class="dropdown-body">
+        <strong>Clinical titles are invisible to business databases.</strong> ZoomInfo covers C-suite well, but CDCES, nurse educators, clinical pharmacists, and hospitalists are almost never indexed.
+        <ul>
+          <li><strong>Firecrawl</strong> scrapes hospital leadership pages and department directories for clinical contacts ZoomInfo misses.</li>
+          <li><strong>Company research</strong> (Perplexity + web search) surfaces press releases, earnings calls, and strategic announcements that DH doesn't cover.</li>
+        </ul>
+        This is the source that gets us from 50% contact coverage to 80%.
+      </div>
+    </details>
+  </div>
+
+</div>
+
+<!-- ▼ arrows into Clay ▼ -->
+<div class="connector-multi">
+  <div class="line"></div>
+  <div class="line"></div>
+  <div class="line"></div>
+</div>
+
+<!-- ████ CLAY (Orchestrator + Own Sourcing + Washing Machine) ████ -->
+<div class="clay-box">
+  <div class="clay-header">
+    <div class="icon">&#9883;</div>
+    <div>
+      <div class="section-title" style="color:#5b9bd5; font-size:26px;">Clay</div>
+    </div>
+  </div>
+  <div class="clay-dual-label">
+    <span class="lbl-orch">Orchestrator</span>
+    <span class="lbl-src">Also Sources Contacts</span>
+    <span class="lbl-wash">Contact Washing Machine</span>
+  </div>
+  <div class="section-desc">
+    Clay is the <strong style="color:#e2e8f0;">central hub</strong>. Data from ZoomInfo, Definitive Healthcare, and web scraping flows in. Clay also runs its own enrichment &mdash; pulling contacts directly via enrichment waterfalls and third-party lookups. Then it cleans every record before anything touches Salesforce.
+  </div>
+
+  <div class="clay-inner">
+
+    <!-- Sub: How data enters -->
+    <div class="clay-sub">
+      <div class="sub-title">&#8594; How data flows in</div>
+      <div class="sub-desc">Clay ingests from all three external sources and runs its own enrichment on top. Each source has a role:</div>
+      <details>
+        <summary>Data flow details</summary>
+        <div class="dropdown-body">
+          <div class="dd-grid">
+            <div class="dd-card">
+              <div class="dd-title">ZoomInfo &rarr; Clay</div>
+              <div class="dd-text">Bulk enrichment by account domain + ICP title keywords. Returns verified emails, phones, titles, LinkedIn URLs. Primary source for Tier 1 &amp; Tier 2 Decision Maker contacts.</div>
+            </div>
+            <div class="dd-card">
+              <div class="dd-title">Definitive HC &rarr; Clay</div>
+              <div class="dd-text">Account data (beds, EHR, financials, CMS quality) + executive contacts by Definitive ID + trigger signals (news, RFPs). Cross-referenced with ZoomInfo results during dedup.</div>
+            </div>
+            <div class="dd-card">
+              <div class="dd-title">Web Scraping &rarr; Clay</div>
+              <div class="dd-text">Firecrawl scrapes hospital leadership pages for clinical titles ZoomInfo misses: CDCES, nurse educators, pharmacy leads, hospitalists. Company research (Perplexity) fills signal gaps.</div>
+            </div>
+            <div class="dd-card">
+              <div class="dd-title">Clay's Own Sourcing</div>
+              <div class="dd-text">Clay runs its own enrichment waterfall on top of external data &mdash; third-party lookups, data provider integrations, and email-finding services to fill remaining gaps and validate results.</div>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- Sub: Washing Machine -->
+    <div class="washer-inner">
+      <div class="section-label" style="color:#7eb8f7;">Every contact must pass through &mdash; no exceptions</div>
+      <div class="section-title">
+        <span class="spin" style="font-size:22px;">&#9881;</span>
+        &nbsp;Contact Washing Machine&nbsp;
+        <span class="spin" style="font-size:22px;">&#9881;</span>
+      </div>
+      <div style="font-size:13px; color:#8aa8d0; margin-top:6px; line-height:1.5;">
+        One bad email to a C-suite contact at an existing customer is a relationship risk.<br>
+        Every record is validated, deduplicated, and cleared before it ever touches Salesforce.
+      </div>
+      <div class="washer-steps">
+        <div class="washer-step"><span class="num">1</span> Dedup &amp; Merge</div>
+        <div class="washer-step"><span class="num">2</span> Email Validation</div>
+        <div class="washer-step"><span class="num">3</span> LinkedIn Cross-Ref</div>
+        <div class="washer-step"><span class="num">4</span> ICP Title Match</div>
+        <div class="washer-step"><span class="num">5</span> Suppression Check</div>
+        <div class="washer-step"><span class="num">6</span> Account Mapping</div>
+      </div>
+      <details>
+        <summary>How the washing machine works (6 steps)</summary>
+        <div class="dropdown-body">
+          <strong>The problem:</strong> Multiple sources return the same person with different data. Without explicit match logic, you either spam someone twice or lose a valid contact.<br><br>
+          <strong>The fix:</strong> Clay enforces a 6-step cleaning process on every record:
+          <div class="dd-grid" style="margin-top:12px;">
+            <div class="dd-card">
+              <div class="dd-title">1. Dedup &amp; Merge</div>
+              <div class="dd-text">Match keys in priority: email &rarr; LinkedIn URL &rarr; name + Definitive ID &rarr; name + domain. Merge rules: ZoomInfo email wins, most specific title wins, DH Definitive ID for facility assignment. One golden record per person.</div>
+            </div>
+            <div class="dd-card">
+              <div class="dd-title">2. Email Validation</div>
+              <div class="dd-text">NeverBounce / ZeroBounce waterfall. Invalid emails never enter a sequence. If bounce exceeds 3%, all sends auto-pause. Zero tolerance.</div>
+            </div>
+            <div class="dd-card">
+              <div class="dd-title">3. LinkedIn Cross-Reference</div>
+              <div class="dd-text">Every contact is checked against their LinkedIn profile. If they've changed titles or moved to a different company, the contact is <strong>flagged and marked stale</strong>. Prevents sending to people who no longer hold the role we're targeting.</div>
+            </div>
+            <div class="dd-card">
+              <div class="dd-title">4. ICP Title Match</div>
+              <div class="dd-text">Fuzzy-match every contact against 66 ICP titles. Assigns tier (1/2/3), intent score (50&ndash;95), category (Decision Maker vs Influencer), function type, and job level. Non-matching titles flagged for review.</div>
+            </div>
+            <div class="dd-card">
+              <div class="dd-title">5. Suppression Check</div>
+              <div class="dd-text">Checked against: current customers, active opportunities, competitors, prior opt-outs, and do-not-contact flags. Suppressed contacts are flagged (not deleted &mdash; audit trail matters) but never enter a sequence.</div>
+            </div>
+            <div class="dd-card">
+              <div class="dd-title">6. Account Mapping</div>
+              <div class="dd-text">Links contacts to the correct Salesforce account via Definitive ID and parent/child hierarchy. Handles IDN structures where one contact may sit at a specific facility within a larger health system.</div>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ▼ arrow ▼ -->
+<div class="connector">
+  <div class="line" style="--c-from:#1e3a5f; --c-to:#5b9bd5;"></div>
+</div>
+
+<!-- ████ SALESFORCE ████ -->
+<div class="section sf">
+  <div class="section-label" style="color:#5b9bd5;">System of Record &mdash; All Roads Lead Here</div>
+  <div class="section-title">Salesforce</div>
+  <div class="section-desc">
+    Accounts, contacts, activity history, pipeline attribution. Clean data only.
+  </div>
+  <span class="sf-badge">CLEAN DATA ONLY</span>
+  <div class="sf-note">
+    <span class="note-icon">&#9888;</span>
+    <span><strong>Setup dependency:</strong> Salesforce configuration requires Bryce (current operations). Jeremy builds the data pipeline and integration logic &mdash; Bryce handles SF admin, field creation, permission sets, and workflow rules. Both need to be aligned before v1 goes live.</span>
+  </div>
+  <details>
+    <summary>What Salesforce holds in V1</summary>
+    <div class="dropdown-body">
+      Salesforce is non-negotiable as the system of record. Every tool reads from or writes to it.
+      <div class="dd-grid" style="margin-top:12px;">
+        <div class="dd-card">
+          <div class="dd-title">Account Records</div>
+          <div class="dd-text">Name, Definitive ID, segment, account score (0&ndash;100), score tier (Priority / Active / Nurture / Monitor), EHR vendor, bed count, facility count, operating margin, CMS stars, readmission rate, latest signal, signal date, assigned rep, do-not-contact flag.</div>
+        </div>
+        <div class="dd-card">
+          <div class="dd-title">Contact Records</div>
+          <div class="dd-text">Name, email (golden record), phone, title, department, ICP tier, intent score, ICP category (Decision Maker / Influencer), function type (Clinical / Business), job level, facility Definitive ID, LinkedIn URL, enrichment source, email validated flag, opt-out status, snooze date.</div>
+        </div>
+      </div>
+    </div>
+  </details>
+</div>
+
+<!-- ▼ arrow ▼ -->
+<div class="connector">
+  <div class="line" style="--c-from:#2e4a7a; --c-to:#2e4a7a;"></div>
+</div>
+
+<!-- ████ SALESFORGE + REPORTING (side by side) ████ -->
+<div class="split-row">
+
+  <!-- SALESFORGE -->
+  <div class="section forge">
+    <div class="section-label" style="color:#b57edc;">Sequencing Engine</div>
+    <div class="section-title">Salesforge</div>
+    <div class="section-desc">API-driven sequences, send scheduling, deliverability tracking, reply capture.</div>
+    <details>
+      <summary>V1 sequence structure</summary>
+      <div class="dropdown-body">
+        <strong>API over UI</strong> &mdash; the UI is unreliable. Every operation is programmatic.
+        <ul>
+          <li><strong>Day 0:</strong> Email 1 &mdash; personalized cold email with signal-based hook</li>
+          <li><strong>Day 3:</strong> Email 2 &mdash; different angle, same pain, new proof point</li>
+          <li><strong>Day 5:</strong> LinkedIn connection request (if URL exists)</li>
+          <li><strong>Day 7:</strong> Email 3 &mdash; direct CTA + case study</li>
+          <li><strong>Day 10:</strong> LinkedIn follow-up (if connection accepted)</li>
+        </ul>
+        <strong>Kill switch:</strong> Bounce &gt;5% or spam &gt;0.3% in any 24-hour window auto-pauses everything. Protects sender reputation.
+      </div>
+    </details>
+  </div>
+
+  <!-- REPORTING -->
+  <div class="section report">
+    <div class="section-label" style="color:#e8b84a;">Visibility Layer</div>
+    <div class="section-title">Reporting</div>
+    <div class="section-desc">Campaign metrics, enrichment coverage, pipeline attribution &mdash; no black boxes.</div>
+    <details>
+      <summary>V1 reporting metrics</summary>
+      <div class="dropdown-body">
+        Pat wants visibility. Clayton wants feedback loops. This is both.
+        <div class="dd-grid" style="margin-top:10px;">
+          <div class="dd-card">
+            <div class="dd-title">Outbound Metrics</div>
+            <div class="dd-text">Emails sent, opened, replied, bounced per campaign.</div>
+            <div><span class="src-tag forge-tag">Data from Salesforge</span></div>
+          </div>
+          <div class="dd-card">
+            <div class="dd-title">Contact Coverage</div>
+            <div class="dd-text">Contacts enriched per account vs. 15+ target. Coverage by segment (Enterprise, Commercial, Partner Growth).</div>
+            <div><span class="src-tag sf-tag">Reported in Salesforce</span></div>
+          </div>
+          <div class="dd-card">
+            <div class="dd-title">Deliverability Health</div>
+            <div class="dd-text">Bounce rate, spam complaint rate, open rate, unsubscribe rate. Thresholds trigger auto-pause if breached &mdash; <strong>requires Datagen.dev</strong> to automate the monitoring and pause logic.</div>
+            <div><span class="src-tag forge-tag">Data from Salesforge</span> <span class="src-tag dg-tag">Automation via Datagen</span></div>
+          </div>
+          <div class="dd-card">
+            <div class="dd-title">Pipeline Attribution</div>
+            <div class="dd-text">Which AI SDR-sourced contacts generated meetings. Signal &rarr; outreach &rarr; response correlation. Segment-level conversion tracking.</div>
+            <div><span class="src-tag forge-tag">Salesforge</span> <span class="src-tag sf-tag">Salesforce</span> <span class="src-tag dg-tag">Datagen</span></div>
+          </div>
+        </div>
+      </div>
+    </details>
+  </div>
+
+</div>
+
+<!-- ▼ arrow ▼ -->
+<div class="connector">
+  <div class="line" style="--c-from:#3a2660; --c-to:#1e4a2a;"></div>
+</div>
+
+<!-- ████ AI SDR AGENT (unfolded) ████ -->
+<div class="section agent">
+  <div class="section-label" style="color:#4ade80;">Automated Outreach</div>
+  <div class="section-title">AI SDR Agent</div>
+  <div class="section-desc" style="color:#7a9a88;">
+    Runs on Salesforge. Signal-driven, persona-targeted, multi-channel. Every message earns the right to the next one.
+  </div>
+
+  <!-- Unfolded pipeline: GATHER → COMPOSE → SEND -->
+  <div class="agent-pipeline">
+
+    <!-- STAGE 1: GATHER -->
+    <div class="pipe-stage">
+      <div class="ps-label"><span class="ps-num">1</span> Gather</div>
+      <div class="pipe-item">
+        <div class="pi-title">Account Intelligence</div>
+        <div class="pi-src">From Salesforce &larr; DH</div>
+        <div class="pi-desc">Bed count, EHR vendor, operating margin, CMS stars, segment, score tier</div>
+      </div>
+      <div class="pipe-item">
+        <div class="pi-title">Trigger Signal</div>
+        <div class="pi-src">From Salesforce &larr; DH + Web</div>
+        <div class="pi-desc">The "why now" &mdash; EHR migration, leadership change, quality initiative, RFP</div>
+      </div>
+      <div class="pipe-item">
+        <div class="pi-title">Contact &amp; ICP Data</div>
+        <div class="pi-src">From Salesforce &larr; Clay</div>
+        <div class="pi-desc">Title, ICP tier, intent score, department, function type, LinkedIn URL</div>
+      </div>
+      <div class="pipe-item">
+        <div class="pi-title">Messaging Framework</div>
+        <div class="pi-src">Static &mdash; Glytec Knowledge Base</div>
+        <div class="pi-desc">Magnetic Messaging pain points, proof points, objection handling, CTA library</div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="pipe-arrow">&rarr;</div>
+
+    <!-- STAGE 2: COMPOSE -->
+    <div class="pipe-stage">
+      <div class="ps-label"><span class="ps-num">2</span> Compose</div>
+      <div class="pipe-item">
+        <div class="pi-title">Select Messaging Variant</div>
+        <div class="pi-desc">Persona tier &times; EHR vendor &times; financial health = ~12 template variants. CNO gets safety language. CFO gets ROI language.</div>
+      </div>
+      <div class="pipe-item">
+        <div class="pi-title">AI Writes Personal Hook</div>
+        <div class="pi-desc">Signal-based opening line: <em>"Saw your Epic migration announcement..."</em> + account-specific proof points (bed count, peer comparisons from DH data)</div>
+      </div>
+      <div class="pipe-item">
+        <div class="pi-title">Title-Specific Framing</div>
+        <div class="pi-desc">CFO &rarr; $20K/bed savings, LOS reduction. CNO &rarr; 99.8% hypo reduction, nurse workflow. CQO &rarr; CMS eCQM readiness, BG thresholds.</div>
+      </div>
+      <div class="pipe-item">
+        <div class="pi-title">Human Review (V1)</div>
+        <div class="pi-desc">Clayton or Reagan approves personalized drafts before they enter the sequence. At v1 scale (100 contacts), this is manageable.</div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="pipe-arrow">&rarr;</div>
+
+    <!-- STAGE 3: SEND -->
+    <div class="pipe-stage">
+      <div class="ps-label"><span class="ps-num">3</span> Send</div>
+      <div class="pipe-item">
+        <div class="pi-title">Day 0: Email 1</div>
+        <div class="pi-desc">Personalized cold email with signal hook + primary pain angle</div>
+      </div>
+      <div class="pipe-item">
+        <div class="pi-title">Day 3: Email 2</div>
+        <div class="pi-desc">Different angle, same pain. New proof point or case study reference.</div>
+      </div>
+      <div class="pipe-item">
+        <div class="pi-title">Day 5: LinkedIn</div>
+        <div class="pi-desc">Connection request via Clayton or Reagan profile (if LinkedIn URL exists)</div>
+      </div>
+      <div class="pipe-item">
+        <div class="pi-title">Day 7: Email 3</div>
+        <div class="pi-desc">Direct CTA + case study link. Final email push.</div>
+      </div>
+      <div class="pipe-item">
+        <div class="pi-title">Day 10: LinkedIn</div>
+        <div class="pi-desc">Follow-up message if connection accepted. Brief, conversational.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <details style="margin-top:18px;">
+    <summary>How the 3 messaging layers combine (example)</summary>
+    <div class="dropdown-body">
+      <strong>Example: Epic + Enterprise/Strategic + Unprofitable + CNO</strong><br><br>
+      <em>"Your nurses are titrating insulin using an unvalidated Epic calculator while CMS publicly reports your glycemic harm outcomes starting this year. 55.9% of facilities are already losing money &mdash; Glytec reduces LOS by 3.18 days on average. MUSC Health chose Glytec specifically for Epic integration and CMS readiness. Worth 15 minutes?"</em><br><br>
+      <strong>Layer 1 (Persona):</strong> CNO &rarr; nursing workflow + patient safety framing<br>
+      <strong>Layer 2 (EHR):</strong> Epic &rarr; DIY calculator liability angle<br>
+      <strong>Layer 3 (Urgency):</strong> Unprofitable &rarr; LOS reduction ROI<br>
+      <strong>Signal hook:</strong> CMS eCQM public reporting (universal trigger for 2026)
+    </div>
+  </details>
+
+  <!-- Channels -->
+  <div class="channels">
+    <div class="channel">
+      <div class="ch-icon">&#9993;</div>
+      <div class="ch-name">Email</div>
+      <div class="ch-desc">Personalized cold outreach<br>Signal-based hooks<br>EHR-segmented messaging</div>
+    </div>
+    <div class="channel">
+      <div class="ch-icon">&#128101;</div>
+      <div class="ch-name">LinkedIn</div>
+      <div class="ch-desc">Connection requests<br>InMail sequences<br>Clayton + Reagan profiles</div>
+    </div>
+  </div>
+</div>
+
+<!-- ▼ arrow ▼ -->
+<div class="connector">
+  <div class="line" style="--c-from:#1e4a2a; --c-to:#1e4a2a;"></div>
+</div>
+
+<!-- ████ PROSPECTS ████ -->
+<div class="prospects">
+  <div class="prospect-dots">
+    <div class="dot">&#128100;</div>
+    <div class="dot">&#128100;</div>
+    <div class="dot">&#128100;</div>
+    <div class="dot">&#128100;</div>
+    <div class="dot">&#128100;</div>
+  </div>
+  <div class="prospect-label">Hospital System Decision Makers &amp; Clinical Champions</div>
+  <div style="margin-top:12px;">
+    <span class="metric"><span class="val">20</span><span class="label">contacts / account</span></span>
+    <span class="metric"><span class="val">66</span><span class="label">ICP titles</span></span>
+    <span class="metric"><span class="val">$485M</span><span class="label">Enterprise pipeline</span></span>
+    <span class="metric"><span class="val">296</span><span class="label">target accounts</span></span>
+  </div>
+</div>
+
+<!-- ████ BOTTOM: NEXT STEPS ████ -->
+<div class="bottom-bar">
+  <div class="bar-title">Here's What Happens Next</div>
+  <div class="bar-text">
+    V1 ships tomorrow. Outbound campaign goes live Feb 23. Three things need to land for this to work:
+  </div>
+  <div class="action-items">
+    <div class="action-item"><span class="check">1</span> Campaign details from Clayton (accounts, messaging, sequencing)</div>
+    <div class="action-item"><span class="check">2</span> Email inboxes warmed + deliverability validated</div>
+    <div class="action-item"><span class="check">3</span> First 10 accounts through the washing machine &rarr; into Salesforce &rarr; into Salesforge</div>
+  </div>
+</div>
+
+<div class="footer">Glytec AI SDR &mdash; V1 Pilot Infrastructure &mdash; Phase 1 Foundation</div>
+
+</div>
+</body>
+</html>

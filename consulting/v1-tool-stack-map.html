@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glytec AI SDR — V1 Tool Stack Map</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242836;
+    --border: #2e3345;
+    --text: #e2e4ed;
+    --text-dim: #8b8fa3;
+    --accent: #6366f1;
+    --blue: #3b82f6;
+    --green: #10b981;
+    --red: #ef4444;
+    --orange: #f97316;
+    --purple: #a855f7;
+    --pink: #ec4899;
+    --yellow: #eab308;
+    --cyan: #06b6d4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  .sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sidebar-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 2;
+  }
+
+  .sidebar-header h1 { font-size: 14px; font-weight: 600; }
+  .sidebar-header p { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+  .sidebar-section {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-section h3 {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .preset-btn {
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    margin-bottom: 3px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.12s;
+  }
+  .preset-btn:hover { background: var(--surface2); }
+  .preset-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 0;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .toggle-row input[type="checkbox"] { accent-color: var(--accent); width: 13px; height: 13px; }
+  .toggle-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Notes section in sidebar */
+  .notes-section {
+    padding: 10px 16px 16px;
+  }
+
+  .notes-section h3 {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .notes-empty {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-style: italic;
+    padding: 6px 0;
+  }
+
+  .note-item {
+    background: var(--surface2);
+    border-radius: 5px;
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    font-size: 11px;
+    position: relative;
+  }
+  .note-item .target { color: var(--accent); font-weight: 600; font-size: 10px; }
+  .note-item .text { color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
+  .note-item .delete-btn {
+    position: absolute; top: 5px; right: 7px;
+    background: none; border: none; color: var(--text-dim);
+    cursor: pointer; font-size: 13px; line-height: 1;
+  }
+  .note-item .delete-btn:hover { color: var(--red); }
+
+  /* ===== MAIN ===== */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .canvas-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  svg#canvas { width: 100%; height: 100%; cursor: grab; }
+  svg#canvas:active { cursor: grabbing; }
+
+  /* Zoom controls */
+  .zoom-controls {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 3px;
+    z-index: 5;
+  }
+  .zoom-btn {
+    width: 30px; height: 30px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 5px;
+    color: var(--text); font-size: 15px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .zoom-btn:hover { background: var(--surface2); }
+
+  /* Detail panel */
+  .detail-panel {
+    display: none;
+    position: absolute;
+    top: 12px; left: 12px;
+    width: 360px;
+    max-height: calc(100% - 24px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+  .detail-panel.open { display: block; }
+
+  .detail-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: sticky; top: 0; background: var(--surface); z-index: 1;
+  }
+  .detail-header h2 { font-size: 13px; font-weight: 600; }
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 500; margin-top: 4px; display: inline-block; }
+  .detail-close {
+    background: none; border: none; color: var(--text-dim);
+    font-size: 18px; cursor: pointer; line-height: 1; padding: 0 0 0 10px;
+  }
+
+  .detail-body { padding: 12px 14px; font-size: 12px; line-height: 1.55; }
+  .detail-body p { margin-bottom: 8px; color: var(--text-dim); }
+  .detail-body h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text); margin: 12px 0 4px; font-weight: 600; }
+  .detail-body ul { padding-left: 16px; color: var(--text-dim); }
+  .detail-body li { margin-bottom: 2px; }
+  .detail-body code { background: var(--bg); padding: 1px 5px; border-radius: 3px; font-size: 11px; font-family: 'SF Mono', Menlo, monospace; }
+
+  .detail-note-area {
+    padding: 10px 14px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .detail-note-area textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
+    color: var(--text); font-size: 11px; font-family: inherit;
+    padding: 7px; resize: vertical; min-height: 44px;
+  }
+  .detail-note-area textarea:focus { outline: none; border-color: var(--accent); }
+  .detail-note-area button {
+    margin-top: 5px; padding: 5px 14px;
+    background: var(--accent); border: none; border-radius: 4px;
+    color: #fff; font-size: 11px; cursor: pointer;
+  }
+
+  /* ===== PROMPT BAR (collapsible) ===== */
+  .prompt-bar {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    transition: max-height 0.2s;
+    overflow: hidden;
+  }
+  .prompt-bar.collapsed { max-height: 36px; }
+
+  .prompt-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .prompt-bar-header h3 {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-dim); font-weight: 600;
+  }
+  .prompt-bar-header .controls { display: flex; gap: 6px; align-items: center; }
+
+  .prompt-toggle {
+    background: none; border: none; color: var(--text-dim);
+    font-size: 14px; cursor: pointer; padding: 0 4px; line-height: 1;
+  }
+  .prompt-toggle:hover { color: var(--text); }
+
+  .copy-btn {
+    padding: 3px 10px;
+    background: var(--accent); border: none; border-radius: 4px;
+    color: #fff; font-size: 10px; cursor: pointer;
+  }
+  .copy-btn.copied { background: var(--green); }
+
+  .prompt-content {
+    padding: 0 16px 12px;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+
+  .prompt-text {
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+
+  /* ===== FLOW ANIMATION ===== */
+  @keyframes flowPulse {
+    0%, 100% { stroke-opacity: 0.25; }
+    50% { stroke-opacity: 0.7; }
+  }
+  .flow-pulse { animation: flowPulse 2s ease-in-out infinite; }
+
+  @keyframes dashMove { to { stroke-dashoffset: -24; } }
+  .dash-animate { animation: dashMove 0.8s linear infinite; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-scroll">
+    <div class="sidebar-header">
+      <h1>V1 Tool Stack</h1>
+      <p>Glytec AI SDR &mdash; Interactive Map</p>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Views</h3>
+      <button class="preset-btn active" data-preset="full">Full System</button>
+      <button class="preset-btn" data-preset="outbound">Outbound Flow</button>
+      <button class="preset-btn" data-preset="enrichment">Enrichment Pipeline</button>
+      <button class="preset-btn" data-preset="intelligence">Intelligence Loop</button>
+      <button class="preset-btn" data-preset="ai-agent">AI Agent Steps</button>
+      <button class="preset-btn" data-preset="compliance">Compliance &amp; Safety</button>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Layers</h3>
+      <div id="layer-toggles"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Connection Types</h3>
+      <div id="conn-toggles"></div>
+    </div>
+
+    <div class="notes-section">
+      <h3>Notes (<span id="note-count">0</span>)</h3>
+      <div id="notes-list"><div class="notes-empty">Click any node to add notes</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="canvas-wrap">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-blue" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#3b82f6"/></marker>
+        <marker id="arr-green" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#10b981"/></marker>
+        <marker id="arr-red" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#ef4444"/></marker>
+        <marker id="arr-purple" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#a855f7"/></marker>
+        <marker id="arr-orange" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#f97316"/></marker>
+        <marker id="arr-pink" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#ec4899"/></marker>
+        <marker id="arr-cyan" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#06b6d4"/></marker>
+      </defs>
+    </svg>
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoomIn()">+</button>
+      <button class="zoom-btn" onclick="zoomOut()">&minus;</button>
+      <button class="zoom-btn" onclick="zoomFit()" style="font-size:10px">Fit</button>
+    </div>
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-header">
+        <div><h2 id="detail-title"></h2><span class="badge" id="detail-badge"></span></div>
+        <button class="detail-close" onclick="closeDetail()">&times;</button>
+      </div>
+      <div class="detail-body" id="detail-body"></div>
+      <div class="detail-note-area">
+        <textarea id="detail-note" placeholder="Add a note about this component..."></textarea>
+        <button onclick="saveNote()">Save Note</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="prompt-bar" id="prompt-bar">
+    <div class="prompt-bar-header" onclick="togglePromptBar()">
+      <h3>Prompt Output</h3>
+      <div class="controls">
+        <button class="copy-btn" id="copy-btn" onclick="event.stopPropagation(); copyPrompt()">Copy</button>
+        <button class="prompt-toggle" id="prompt-toggle">&#x25BC;</button>
+      </div>
+    </div>
+    <div class="prompt-content" id="prompt-content">
+      <div class="prompt-text" id="prompt-output"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== DATA ====================
+
+const LAYERS = {
+  crm:        { label: 'CRM Backbone',         color: '#3b82f6' },
+  orchestrator:{ label: 'Orchestrator',          color: '#eab308' },
+  signals:    { label: 'Signals & Intel',       color: '#f97316' },
+  contacts:   { label: 'Contact Enrichment',    color: '#10b981' },
+  processing: { label: 'Data Processing',       color: '#06b6d4' },
+  ai:         { label: 'AI / Content Gen',      color: '#a855f7' },
+  sequencing: { label: 'Sequencing & Sending',  color: '#ec4899' },
+  compliance: { label: 'Compliance & Safety',   color: '#ef4444' },
+};
+
+const CONN_TYPES = {
+  data:    { label: 'Data Flow',       color: '#3b82f6', dash: '' },
+  sync:    { label: 'Bi-Dir Sync',     color: '#10b981', dash: '8,4' },
+  enrich:  { label: 'Enrichment',      color: '#f97316', dash: '4,3' },
+  trigger: { label: 'Trigger / Event', color: '#ef4444', dash: '6,3' },
+  ai:      { label: 'AI Generation',   color: '#a855f7', dash: '5,4' },
+  send:    { label: 'Outbound Send',   color: '#ec4899', dash: '' },
+};
+
+// Zones define labeled background regions on the canvas
+const ZONES = [
+  { id: 'z-source', label: 'DATA SOURCES', sublabel: 'Where information originates', x: 40, y: 350, w: 400, h: 530, color: '#f97316' },
+  { id: 'z-process', label: 'PROCESSING', sublabel: 'Clean, score, validate, deduplicate', x: 480, y: 350, w: 420, h: 530, color: '#06b6d4' },
+  { id: 'z-action', label: 'ACTION', sublabel: 'Personalize, send, handle replies', x: 940, y: 150, w: 420, h: 730, color: '#ec4899' },
+  { id: 'z-crm', label: 'SYSTEM OF RECORD', sublabel: 'Salesforce  \u2014  everything syncs here', x: 480, y: 40, w: 420, h: 140, color: '#3b82f6' },
+  { id: 'z-feedback', label: 'FEEDBACK LOOP', sublabel: 'Learn and iterate', x: 40, y: 40, w: 400, h: 270, color: '#a855f7' },
+];
+
+// --- NODES (spread out, organized by zone) ---
+
+const W = 170, H = 54;
+
+const nodes = [
+  // === CRM (top center) ===
+  { id: 'salesforce', label: 'Salesforce', subtitle: 'System of Record', x: 570, y: 70, w: W, h: H,
+    layer: 'crm',
+    detail: {
+      status: 'NOT CONNECTED', statusColor: '#ef4444',
+      desc: 'Non-negotiable CRM backbone (Clayton principle #1). All contacts, accounts, opportunities, campaigns, activities, and pipeline attribution.',
+      sections: {
+        'Account Fields': ['Definitive_ID__c \u2014 cross-system join key', 'Segment__c, Account_Score__c, Score_Tier__c', 'EHR_Vendor__c, Bed_Count__c, Operating_Margin__c', 'CMS_Star_Rating__c, Readmission_Rate__c', 'Latest_Signal__c, Signal_Date__c', 'Glytec_Client_Status__c, Do_Not_Contact__c'],
+        'Contact Fields': ['ICP_Tier__c, Intent_Score__c, ICP_Category__c', 'Function_Type__c, Job_Level__c, Facility_Definitive_ID__c', 'Enrichment_Source__c, Email_Validated__c', 'Email_Opt_Out, Do_Not_Contact__c, Snooze_Until__c'],
+        'Opportunity (at handoff)': ['AI_SDR_Sourced__c = true', 'Signal_That_Triggered__c, Source_Campaign__c', 'Stage: Meeting Booked or Qualified Lead'],
+        'Campaign/Activity': ['1 Campaign per SalesForge sequence', 'CampaignMember: Sent, Opened, Replied, Booked, Opted Out', 'Task: handoff package with full context', 'EmailMessage: synced threads from SalesForge'],
+      }
+    }
+  },
+
+  // === ORCHESTRATOR (center) ===
+  { id: 'clay', label: 'Clay', subtitle: 'Orchestrator \u2014 4 Workflows', x: 570, y: 250, w: W, h: H,
+    layer: 'orchestrator',
+    detail: {
+      status: 'NOT CONNECTED', statusColor: '#ef4444',
+      desc: 'Central orchestrator (Clayton principle #5). Runs enrichment waterfalls, dedup, scoring, suppression sync, and signal routing.',
+      sections: {
+        'WF1: Account Scoring': ['Pull DH data by Definitive ID', 'Pull trigger signals (news, RFPs)', 'Compute 6-factor weighted score', 'Suppression check \u2192 push to SF', 'Priority/Active tier \u2192 triggers WF2'],
+        'WF2: Contact Waterfall': ['ZoomInfo \u2192 DH \u2192 Firecrawl \u2192 LinkedIn', 'Dedup \u2192 validate email \u2192 ICP match', 'Suppression check \u2192 push golden record to SF'],
+        'WF3: Suppression Sync (daily)': ['Pull unsubscribes, bounces, new clients, new opps', 'Update opt-out flags, remove from sequences'],
+        'WF4: Signal Re-scoring': ['New DH signal \u2192 re-score \u2192 tier upgrade?', 'Notify Clayton/Reagan if account jumps tier'],
+      }
+    }
+  },
+
+  { id: 'datagen', label: 'Datagen SDK', subtitle: 'Tool Execution Layer', x: 570, y: 470, w: W, h: H,
+    layer: 'orchestrator',
+    detail: {
+      status: 'CONNECTED', statusColor: '#10b981',
+      desc: 'Programmatic tool execution. Orchestrates API calls, AI content generation, web scraping, and data processing.',
+      sections: {
+        'Key Tools': ['ai_writer \u2014 email copy generation', 'extract_structured_output \u2014 parse signals', 'firecrawl_scrape / firecrawl_search', 'perplexity_search \u2014 company research', 'write_file_to_local \u2014 export data'],
+        'SDK Pattern': ['searchTools \u2192 getToolDetails \u2192 execute_tool', 'Always schema-first: confirm params before calling'],
+      }
+    }
+  },
+
+  // === SIGNALS (left) ===
+  { id: 'dh-api', label: 'Definitive HC', subtitle: 'HospitalView API', x: 80, y: 390, w: W, h: H,
+    layer: 'signals',
+    detail: {
+      status: 'NOT CONNECTED', statusColor: '#ef4444',
+      desc: 'Only source of real-time "why now" triggers. Live hospital data. Integration specialist: Ryan McDonald.',
+      sections: {
+        'Trigger Signals': ['EHR migrations', 'Leadership changes (new CNO/CQO/CMIO)', 'Quality improvement initiatives', 'Capital projects, CMS star shifts, RFPs'],
+        'Account Data': ['Bed count, EHR vendor, operating margin', 'CMS stars (1-5), readmission rate', 'Facility type, ownership, geography'],
+        'Join Key': ['Definitive ID \u2014 links all CSVs + API'],
+      }
+    }
+  },
+
+  { id: 'company-research', label: 'Company Research', subtitle: 'Firecrawl + Perplexity', x: 80, y: 510, w: W, h: H,
+    layer: 'signals',
+    detail: {
+      status: 'CONNECTED', statusColor: '#10b981',
+      desc: 'Supplemental signals: press releases, earnings, strategic plans, IT hires, vendor announcements.',
+      sections: {
+        'Tools': ['Firecrawl: scrape, crawl, search, extract', 'Perplexity: web research with citations', 'LinkedIn company posts'],
+      }
+    }
+  },
+
+  // === CONTACTS (left-center) ===
+  { id: 'zoominfo', label: 'ZoomInfo', subtitle: 'Verified Emails + Phones', x: 80, y: 650, w: W, h: H,
+    layer: 'contacts',
+    detail: {
+      status: 'NOT CONNECTED', statusColor: '#ef4444',
+      desc: 'Primary source for verified business emails and phone numbers. Best coverage for C-suite and Director titles.',
+      sections: {
+        'Hit Rates': ['Tier 1 C-suite: 70\u201385%', 'Tier 2 Directors: 50\u201365%', 'Tier 2 Clinical: 30\u201350%', 'Tier 3 Clinical: 15\u201330%'],
+        'In Waterfall': ['Step 1 (primary source)', 'Email wins in merge rules'],
+      }
+    }
+  },
+
+  { id: 'scraping', label: 'Web Scraping', subtitle: 'Hospital Leadership Pages', x: 270, y: 650, w: W, h: H,
+    layer: 'contacts',
+    detail: {
+      status: 'CONNECTED', statusColor: '#10b981',
+      desc: 'Hospital leadership pages, department directories. Often only source for clinical titles (CDCES, nurse educators, pharmacy leads).',
+      sections: {
+        'In Waterfall': ['Step 3 \u2014 after ZoomInfo + DH', 'Targets clinical roles ZoomInfo misses', 'Lowest priority in email merge'],
+      }
+    }
+  },
+
+  { id: 'linkedin', label: 'LinkedIn', subtitle: 'Profile Verification', x: 270, y: 780, w: W, h: H,
+    layer: 'contacts',
+    detail: {
+      status: 'CONNECTED', statusColor: '#10b981',
+      desc: 'Profile verification, KOL identification, contact research. Also outbound channel (Clayton + Reagan).',
+      sections: {
+        'In Waterfall': ['Step 4 \u2014 verify contacts without email', 'Pull LinkedIn URL for multi-channel'],
+        'As Channel': ['Connection requests (Day 5)', 'Messages (Day 10)', 'Clayton + Reagan profiles only v1'],
+      }
+    }
+  },
+
+  { id: 'leandata', label: 'LeanData', subtitle: 'Contact \u2192 Account', x: 80, y: 780, w: W, h: H,
+    layer: 'contacts',
+    detail: {
+      status: 'NOT CONNECTED', statusColor: '#ef4444',
+      desc: 'Contact-to-account mapping (principle #9). Parent/child IDN hierarchy handling (principle #10).',
+      sections: {
+        'Functions': ['Map contacts to correct account', 'Handle IDN parent/child hierarchies', 'Route contacts to account owners'],
+      }
+    }
+  },
+
+  // === PROCESSING (center) ===
+  { id: 'scoring', label: 'Account Scoring', subtitle: '6-Factor Weighted Model', x: 530, y: 390, w: 190, h: H,
+    layer: 'processing',
+    detail: {
+      status: 'Model defined', statusColor: '#eab308',
+      desc: 'Determines which accounts get worked first. Computed in Clay, stored in Salesforce.',
+      sections: {
+        'Factors (weights)': ['Bed count \u2265 300 (20%)', 'Operating margin below median (15%)', 'EHR vendor non-Epic (20%)', 'CMS stars below avg (15%)', 'Active trigger signal in 90 days (20%)', 'Contact coverage \u2265 10 (10%)'],
+        'Score \u2192 Action': ['80\u2013100 Priority: immediate, full personalization', '60\u201379 Active: within 1 week', '40\u201359 Nurture: low-touch drip', '<40 Monitor: no outreach, monthly re-score'],
+      }
+    }
+  },
+
+  { id: 'dedup', label: 'Dedup & Merge', subtitle: 'Golden Record Logic', x: 530, y: 540, w: 190, h: H,
+    layer: 'processing',
+    detail: {
+      status: 'Logic defined', statusColor: '#eab308',
+      desc: 'Match keys + merge rules produce one golden record per person.',
+      sections: {
+        'Match Keys': ['1. Email (exact)', '2. LinkedIn URL (normalized)', '3. Name + Definitive ID (fuzzy)', '4. Name + domain (fuzzy)'],
+        'Merge Rules': ['Email: ZoomInfo > Clay > DH > scraping', 'Phone: ZoomInfo > DH', 'Title: most specific wins', 'Facility: DH Definitive ID'],
+      }
+    }
+  },
+
+  { id: 'email-validation', label: 'Email Validation', subtitle: 'NeverBounce / ZeroBounce', x: 530, y: 680, w: 190, h: H,
+    layer: 'compliance',
+    detail: {
+      status: 'NOT CONNECTED', statusColor: '#ef4444',
+      desc: 'Deliverability check before any sends. Zero tolerance for invalid emails in first send.',
+      sections: {
+        'Checks': ['Email validity', 'Catch-all domain detection', 'Role-based filtering (info@, admin@)'],
+        'Output': ['Email_Validated__c = true/false', 'Invalid \u2192 LinkedIn-only outreach'],
+      }
+    }
+  },
+
+  { id: 'icp-match', label: 'ICP Title Match', subtitle: '66 Titles \u00d7 3 Tiers', x: 530, y: 810, w: 190, h: H,
+    layer: 'processing',
+    detail: {
+      status: 'Data ready', statusColor: '#10b981',
+      desc: 'Fuzzy-match contact titles against 66 ICP titles. Assigns tier, intent, category, function, job level.',
+      sections: {
+        'Tier 1 (90\u201395)': ['CEO, CNO, CQO, CMIO, CFO, COO, Chief of Endo', '7 titles \u2014 open every account here'],
+        'Tier 2 (75\u201389)': ['30 Director/VP Decision Makers'],
+        'Tier 3 (50\u201374)': ['29 Influencer titles (clinical)'],
+      }
+    }
+  },
+
+  { id: 'suppression', label: 'Suppression Engine', subtitle: 'Do-Not-Contact Lists', x: 760, y: 680, w: 190, h: H,
+    layer: 'compliance',
+    detail: {
+      status: 'Logic defined', statusColor: '#eab308',
+      desc: 'Every contact must clear suppression before entering a sequence.',
+      sections: {
+        'Lists': ['Current customers (SF status = Active)', 'Active opportunities', 'Competitors (manual)', 'Off-limits contacts (SF flag)', 'Prior opt-outs (SalesForge sync)'],
+        'Enforcement': ['Clay checks ALL lists before SalesForge', 'Flagged in SF but never sequenced'],
+      }
+    }
+  },
+
+  // === AI / CONTENT (right-center) ===
+  { id: 'ai-writer', label: 'AI Content Gen', subtitle: 'Claude / ai_writer', x: 990, y: 410, w: W, h: H,
+    layer: 'ai',
+    detail: {
+      status: 'CONNECTED', statusColor: '#10b981',
+      desc: 'Generates personalized email copy. Takes segment, persona, signal, and account data. Human reviews at v1 scale.',
+      sections: {
+        'Generates': ['Personalized opening (signal-based)', 'Account-specific proof points', 'Title-specific pain framing'],
+        'Inputs': ['Messaging template (framework)', 'Signal hook (DH + research)', 'Account data (beds, EHR, financials)', 'Contact title, department, ICP tier'],
+        'Review': ['v1: Clayton/Reagan approve all', 'v2+: spot-checking'],
+      }
+    }
+  },
+
+  { id: 'messaging-framework', label: 'Messaging Framework', subtitle: 'Templates + Proof Points', x: 990, y: 540, w: W, h: H,
+    layer: 'ai',
+    detail: {
+      status: 'READY', statusColor: '#10b981',
+      desc: '31-section StoryBrand messaging system. Templates for every segment \u00d7 persona \u00d7 EHR combination.',
+      sections: {
+        'Matrix': ['Pain (safety, revenue, regulatory, EHR)', '\u00d7 Persona tier (C-suite, VP/Dir, clinical)', '= ~12 messaging variants'],
+        'EHR Variants': ['Epic: "DIY calculator liability"', 'Cerner: "Oracle transition uncertainty"', 'MEDITECH: "lacks native CDS"', 'Vista: "enterprise standardization"'],
+        'Proof Points': ['99.8% hypo reduction, 0 FDA recalls', '$20K/bed, 3.18-day LOS reduction', '400+ hospitals, 93% KLAS', 'FDA-cleared, CMS eCQM ready'],
+      }
+    }
+  },
+
+  // === SEQUENCING (right) ===
+  { id: 'salesforge', label: 'SalesForge', subtitle: 'API \u2014 Email + LinkedIn', x: 990, y: 200, w: W, h: H,
+    layer: 'sequencing',
+    detail: {
+      status: 'NOT CONNECTED', statusColor: '#ef4444',
+      desc: 'Outbound sending. API over UI (UI is buggy). Email + LinkedIn. Clayton + Reagan inboxes.',
+      sections: {
+        'V1 Sequence (5 steps)': ['Day 0: Email 1 (personalized cold)', 'Day 3: Email 2 (new angle)', 'Day 5: LinkedIn connection request', 'Day 7: Email 3 (CTA + case study)', 'Day 10: LinkedIn message'],
+        'API Endpoints': ['POST /sequences \u2014 create', 'POST .../contacts \u2014 add', 'PATCH \u2014 pause/resume', 'DELETE \u2014 remove', 'GET /stats, /replies, /bounces'],
+      }
+    }
+  },
+
+  { id: 'reply-handler', label: 'Reply Handler', subtitle: 'Classify + Route', x: 1200, y: 200, w: W, h: H,
+    layer: 'sequencing',
+    detail: {
+      status: 'Logic defined', statusColor: '#eab308',
+      desc: 'Classifies replies, routes to action. Manual v1, AI v2+.',
+      sections: {
+        'Classifications': ['Interested \u2192 SF task, pause (4hr SLA)', 'Referral \u2192 enrich referred contact (24hr)', 'Not now \u2192 snooze, re-enter later', 'Remove me \u2192 suppression (immediate)', 'Wrong person \u2192 flag title mismatch', 'Negative \u2192 12-month cooldown', 'Bounce \u2192 suppression (immediate)'],
+      }
+    }
+  },
+
+  { id: 'handoff', label: 'Sales Handoff', subtitle: 'SDR \u2192 AE', x: 1200, y: 350, w: W, h: H,
+    layer: 'sequencing',
+    detail: {
+      status: 'Logic defined', statusColor: '#eab308',
+      desc: 'Positive signal \u2192 hand to human with full context. Clayton = Enterprise, Reagan = Commercial.',
+      sections: {
+        'Triggers': ['Interested reply or referral', 'Meeting booked', 'LinkedIn response'],
+        'Package (SF Task)': ['Account summary + score + signal', 'Contact context + LinkedIn', 'Full conversation history', 'AI-suggested talk track', 'Other enriched contacts at account'],
+      }
+    }
+  },
+
+  { id: 'deliverability', label: 'Deliverability', subtitle: 'DNS + Warm-up + Monitor', x: 1200, y: 500, w: W, h: H,
+    layer: 'compliance',
+    detail: {
+      status: 'NOT SET UP', statusColor: '#ef4444',
+      desc: 'All items must be complete before first send.',
+      sections: {
+        'DNS': ['Subdomain: outreach.glytec.com', 'SPF, DKIM, DMARC configured'],
+        'Warm-up (14 days)': ['5/day \u2192 10 \u2192 20 \u2192 40', 'Target >30% open rate'],
+        'Kill Switch': ['Bounce >5% \u2192 auto-pause', 'Spam >0.3% \u2192 auto-pause'],
+      }
+    }
+  },
+
+  // === FEEDBACK (top-left) ===
+  { id: 'feedback-loop', label: 'Feedback Loop', subtitle: 'Measure \u2192 Refine', x: 130, y: 120, w: 190, h: H,
+    layer: 'signals',
+    detail: {
+      status: 'V2+ full automation', statusColor: '#eab308',
+      desc: 'Response data feeds back to refine scoring, messaging, and targeting.',
+      sections: {
+        'Metrics': ['Open/reply/meeting rates by segment', 'Signal \u2192 response correlation', 'EHR-segmented response rates', 'Multi-threading depth vs conversion'],
+        'Feeds Back To': ['Scoring weights', 'Messaging variants', 'Signal prioritization', 'ICP targeting'],
+      }
+    }
+  },
+];
+
+// --- CONNECTIONS ---
+const connections = [
+  // CRM <-> orchestrator
+  { from: 'salesforce', to: 'clay', type: 'sync', label: 'bi-dir sync' },
+  { from: 'clay', to: 'datagen', type: 'data', label: 'tool execution' },
+
+  // Signals -> processing
+  { from: 'dh-api', to: 'scoring', type: 'data', label: '5 of 6 scoring factors' },
+  { from: 'dh-api', to: 'clay', type: 'trigger', label: 'signals + account data' },
+  { from: 'company-research', to: 'clay', type: 'enrich', label: 'supplemental signals' },
+
+  // Contact sources -> clay
+  { from: 'zoominfo', to: 'clay', type: 'enrich', label: 'WF2 step 1: emails, phones' },
+  { from: 'scraping', to: 'clay', type: 'enrich', label: 'WF2 step 3: clinical titles' },
+  { from: 'linkedin', to: 'clay', type: 'enrich', label: 'WF2 step 4: verify' },
+  { from: 'leandata', to: 'clay', type: 'data', label: 'contact\u2192account mapping' },
+  { from: 'dh-api', to: 'clay', type: 'enrich', label: 'WF2 step 2: facility contacts' },
+
+  // Scoring
+  { from: 'scoring', to: 'clay', type: 'data', label: 'score + tier' },
+  { from: 'clay', to: 'scoring', type: 'data', label: 'account data' },
+
+  // Processing pipeline (Clay internal -> explicit nodes)
+  { from: 'clay', to: 'dedup', type: 'data', label: 'WF2 step 5: match & merge' },
+  { from: 'clay', to: 'email-validation', type: 'data', label: 'WF2 step 6' },
+  { from: 'clay', to: 'suppression', type: 'data', label: 'WF2 step 8: check lists' },
+  { from: 'dedup', to: 'icp-match', type: 'data', label: 'golden records' },
+  { from: 'email-validation', to: 'icp-match', type: 'data', label: 'validated contacts' },
+
+  // Processing -> CRM
+  { from: 'icp-match', to: 'salesforce', type: 'data', label: 'enriched contacts' },
+  { from: 'clay', to: 'salesforce', type: 'sync', label: 'scored accounts' },
+
+  // AI content
+  { from: 'messaging-framework', to: 'ai-writer', type: 'ai', label: 'templates + proof points' },
+  { from: 'datagen', to: 'ai-writer', type: 'ai', label: 'ai_writer execution' },
+  { from: 'clay', to: 'ai-writer', type: 'data', label: 'signal + account context' },
+  { from: 'salesforce', to: 'ai-writer', type: 'data', label: 'contact + account data' },
+
+  // Sequencing
+  { from: 'ai-writer', to: 'salesforge', type: 'send', label: 'personalized emails' },
+  { from: 'clay', to: 'salesforge', type: 'data', label: 'validated contacts' },
+  { from: 'salesforge', to: 'reply-handler', type: 'trigger', label: 'reply events' },
+  { from: 'salesforge', to: 'salesforce', type: 'sync', label: 'activity sync' },
+  { from: 'reply-handler', to: 'handoff', type: 'trigger', label: 'interested / referral' },
+  { from: 'reply-handler', to: 'suppression', type: 'trigger', label: 'opt-out / bounce' },
+  { from: 'handoff', to: 'salesforce', type: 'data', label: 'opp + task' },
+
+  // Compliance
+  { from: 'deliverability', to: 'salesforge', type: 'data', label: 'warm inboxes + DNS' },
+  { from: 'salesforge', to: 'deliverability', type: 'trigger', label: 'bounce/spam metrics' },
+  { from: 'suppression', to: 'salesforce', type: 'sync', label: 'opt-out flags' },
+  { from: 'suppression', to: 'salesforge', type: 'data', label: 'block from sequences' },
+
+  // Feedback
+  { from: 'salesforce', to: 'feedback-loop', type: 'data', label: 'campaign metrics' },
+  { from: 'feedback-loop', to: 'scoring', type: 'ai', label: 'refine weights' },
+  { from: 'feedback-loop', to: 'messaging-framework', type: 'ai', label: 'refine messaging' },
+];
+
+// Presets
+const PRESETS = {
+  full: { layers: Object.keys(LAYERS), conns: Object.keys(CONN_TYPES), highlight: [] },
+  outbound: {
+    layers: ['ai', 'sequencing', 'compliance', 'crm', 'orchestrator'],
+    conns: ['send', 'trigger', 'ai', 'sync', 'data'],
+    highlight: ['ai-writer', 'messaging-framework', 'salesforge', 'reply-handler', 'handoff', 'deliverability', 'salesforce', 'clay', 'datagen']
+  },
+  enrichment: {
+    layers: ['contacts', 'processing', 'orchestrator', 'crm', 'compliance'],
+    conns: ['enrich', 'data', 'sync'],
+    highlight: ['zoominfo', 'scraping', 'linkedin', 'leandata', 'clay', 'dedup', 'email-validation', 'icp-match', 'suppression', 'salesforce']
+  },
+  intelligence: {
+    layers: ['signals', 'processing', 'orchestrator', 'crm', 'ai'],
+    conns: ['data', 'trigger', 'ai'],
+    highlight: ['scoring', 'feedback-loop', 'dh-api', 'company-research', 'clay', 'messaging-framework', 'salesforce']
+  },
+  'ai-agent': {
+    layers: ['ai', 'orchestrator', 'signals', 'processing', 'sequencing'],
+    conns: ['ai', 'data', 'send', 'enrich'],
+    highlight: ['ai-writer', 'messaging-framework', 'datagen', 'dh-api', 'company-research', 'icp-match', 'salesforge']
+  },
+  compliance: {
+    layers: ['compliance', 'sequencing', 'crm', 'orchestrator', 'processing'],
+    conns: ['trigger', 'sync', 'data'],
+    highlight: ['suppression', 'email-validation', 'deliverability', 'reply-handler', 'salesforce', 'salesforge', 'clay']
+  },
+};
+
+// ==================== STATE ====================
+
+const state = {
+  activePreset: 'full',
+  layers: {},
+  conns: {},
+  notes: [],
+  selectedNode: null,
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  highlight: [],
+  promptCollapsed: false,
+};
+
+Object.keys(LAYERS).forEach(k => state.layers[k] = true);
+Object.keys(CONN_TYPES).forEach(k => state.conns[k] = true);
+
+// ==================== RENDERING ====================
+
+const svg = document.getElementById('canvas');
+let panning = false, panStart = { x: 0, y: 0 };
+
+function buildSidebar() {
+  // Layers
+  const lt = document.getElementById('layer-toggles');
+  lt.innerHTML = '';
+  Object.entries(LAYERS).forEach(([k, v]) => {
+    const row = document.createElement('label');
+    row.className = 'toggle-row';
+    row.innerHTML = `<input type="checkbox" ${state.layers[k] ? 'checked' : ''} data-layer="${k}">
+      <span class="toggle-dot" style="background:${v.color}"></span>${v.label}`;
+    row.querySelector('input').addEventListener('change', e => {
+      state.layers[k] = e.target.checked;
+      state.activePreset = null;
+      updatePresetBtns();
+      render();
+    });
+    lt.appendChild(row);
+  });
+
+  // Connections
+  const ct = document.getElementById('conn-toggles');
+  ct.innerHTML = '';
+  Object.entries(CONN_TYPES).forEach(([k, v]) => {
+    const row = document.createElement('label');
+    row.className = 'toggle-row';
+    const dStyle = v.dash ? `stroke-dasharray:${v.dash}` : '';
+    row.innerHTML = `<input type="checkbox" ${state.conns[k] ? 'checked' : ''} data-conn="${k}">
+      <svg width="20" height="4" style="flex-shrink:0"><line x1="0" y1="2" x2="20" y2="2" stroke="${v.color}" stroke-width="2" style="${dStyle}"/></svg>
+      <span style="color:${v.color}">${v.label}</span>`;
+    row.querySelector('input').addEventListener('change', e => {
+      state.conns[k] = e.target.checked;
+      render();
+    });
+    ct.appendChild(row);
+  });
+}
+
+function updatePresetBtns() {
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.preset === state.activePreset);
+  });
+}
+
+function applyPreset(name) {
+  const p = PRESETS[name];
+  if (!p) return;
+  state.activePreset = name;
+  Object.keys(LAYERS).forEach(k => state.layers[k] = p.layers.includes(k));
+  Object.keys(CONN_TYPES).forEach(k => state.conns[k] = p.conns.includes(k));
+  state.highlight = p.highlight || [];
+  buildSidebar();
+  updatePresetBtns();
+  render();
+}
+
+function render() {
+  // Remove old world
+  const old = document.getElementById('world');
+  if (old) old.remove();
+
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.id = 'world';
+  g.setAttribute('transform', `translate(${state.panX},${state.panY}) scale(${state.zoom})`);
+
+  // --- ZONES (background regions) ---
+  ZONES.forEach(z => {
+    const rect = make('rect', { x: z.x, y: z.y, width: z.w, height: z.h, rx: 16, fill: z.color, 'fill-opacity': 0.04, stroke: z.color, 'stroke-opacity': 0.12, 'stroke-width': 1, 'stroke-dasharray': '6,4' });
+    g.appendChild(rect);
+
+    const label = make('text', { x: z.x + 14, y: z.y + 22, 'font-size': 10, 'font-weight': 700, fill: z.color, opacity: 0.5, 'letter-spacing': '1.5px' });
+    label.textContent = z.label;
+    g.appendChild(label);
+
+    if (z.sublabel) {
+      const sub = make('text', { x: z.x + 14, y: z.y + 36, 'font-size': 9, fill: z.color, opacity: 0.3 });
+      sub.textContent = z.sublabel;
+      g.appendChild(sub);
+    }
+  });
+
+  // --- CONNECTIONS ---
+  connections.forEach(conn => {
+    if (!state.conns[conn.type]) return;
+    const fromN = nodes.find(n => n.id === conn.from);
+    const toN = nodes.find(n => n.id === conn.to);
+    if (!fromN || !toN) return;
+    if (!state.layers[fromN.layer] || !state.layers[toN.layer]) return;
+
+    const ct = CONN_TYPES[conn.type];
+    const pts = connPoints(fromN, toN);
+    const hl = state.highlight.length === 0 || (state.highlight.includes(conn.from) && state.highlight.includes(conn.to));
+
+    // Path
+    const dx = pts.x2 - pts.x1;
+    const dy = pts.y2 - pts.y1;
+    let d;
+    if (Math.abs(dx) > Math.abs(dy) * 0.6) {
+      // Horizontal-ish: S-curve
+      const cx = dx * 0.45;
+      d = `M${pts.x1},${pts.y1} C${pts.x1 + cx},${pts.y1} ${pts.x2 - cx},${pts.y2} ${pts.x2},${pts.y2}`;
+    } else {
+      // Vertical-ish
+      const cy = dy * 0.45;
+      d = `M${pts.x1},${pts.y1} C${pts.x1},${pts.y1 + cy} ${pts.x2},${pts.y2 - cy} ${pts.x2},${pts.y2}`;
+    }
+
+    const path = make('path', {
+      d, fill: 'none', stroke: ct.color, 'stroke-width': 1.5,
+      'stroke-opacity': hl ? 0.45 : 0.08,
+      'marker-end': `url(#arr-${colorName(ct.color)})`
+    });
+    if (ct.dash) path.setAttribute('stroke-dasharray', ct.dash);
+    g.appendChild(path);
+
+    // Label on connection
+    if (conn.label && hl) {
+      const mx = (pts.x1 + pts.x2) / 2;
+      const my = (pts.y1 + pts.y2) / 2;
+      // offset label perpendicular to the line
+      const angle = Math.atan2(dy, dx);
+      const off = -10;
+      const lx = mx + Math.sin(angle) * off;
+      const ly = my - Math.cos(angle) * off;
+
+      const bg = make('rect', { x: lx - 2, y: ly - 8, width: conn.label.length * 4.5 + 8, height: 12, rx: 3, fill: '#0f1117', 'fill-opacity': 0.8 });
+      g.appendChild(bg);
+
+      const txt = make('text', { x: lx + 2, y: ly, 'font-size': 7.5, fill: ct.color, opacity: 0.7 });
+      txt.textContent = conn.label;
+      g.appendChild(txt);
+    }
+  });
+
+  // --- NODES ---
+  nodes.forEach(node => {
+    if (!state.layers[node.layer]) return;
+
+    const layerColor = LAYERS[node.layer].color;
+    const hl = state.highlight.length === 0 || state.highlight.includes(node.id);
+    const hasNote = state.notes.some(n => n.target === node.id);
+    const isSel = state.selectedNode === node.id;
+
+    const ng = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    ng.setAttribute('opacity', hl ? 1 : 0.15);
+    ng.style.cursor = 'pointer';
+
+    // Shadow
+    ng.appendChild(make('rect', { x: node.x + 2, y: node.y + 2, width: node.w, height: node.h, rx: 8, fill: 'rgba(0,0,0,0.35)' }));
+
+    // Body
+    const strokeColor = isSel ? '#fff' : hasNote ? '#eab308' : layerColor;
+    const strokeW = isSel ? 2.5 : hasNote ? 2 : 1.2;
+    ng.appendChild(make('rect', { x: node.x, y: node.y, width: node.w, height: node.h, rx: 8, fill: '#181b24', stroke: strokeColor, 'stroke-width': strokeW }));
+
+    // Left accent
+    ng.appendChild(make('rect', { x: node.x, y: node.y + 6, width: 3, height: node.h - 12, rx: 1.5, fill: layerColor }));
+
+    // Status dot
+    if (node.detail?.statusColor) {
+      ng.appendChild(make('circle', { cx: node.x + node.w - 14, cy: node.y + 14, r: 4, fill: node.detail.statusColor }));
+    }
+
+    // Label
+    const lbl = make('text', { x: node.x + 14, y: node.y + 22, 'font-size': 12, 'font-weight': 600, fill: '#e2e4ed' });
+    lbl.textContent = node.label;
+    ng.appendChild(lbl);
+
+    // Subtitle
+    const sub = make('text', { x: node.x + 14, y: node.y + 38, 'font-size': 9, fill: '#6b7080' });
+    sub.textContent = node.subtitle;
+    ng.appendChild(sub);
+
+    // Note icon
+    if (hasNote) {
+      const ni = make('text', { x: node.x + node.w - 16, y: node.y + node.h - 8, 'font-size': 10, fill: '#eab308' });
+      ni.textContent = '\u270E';
+      ng.appendChild(ni);
+    }
+
+    ng.addEventListener('click', e => { e.stopPropagation(); openDetail(node); });
+    ng.addEventListener('mouseenter', () => { ng.querySelector('rect:nth-child(2)').setAttribute('stroke-width', '2.5'); });
+    ng.addEventListener('mouseleave', () => { ng.querySelector('rect:nth-child(2)').setAttribute('stroke-width', strokeW); });
+
+    g.appendChild(ng);
+  });
+
+  svg.appendChild(g);
+  updatePrompt();
+}
+
+function make(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+  return el;
+}
+
+function connPoints(from, to) {
+  const fc = { x: from.x + from.w / 2, y: from.y + from.h / 2 };
+  const tc = { x: to.x + to.w / 2, y: to.y + to.h / 2 };
+  const dx = tc.x - fc.x, dy = tc.y - fc.y;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return dx > 0
+      ? { x1: from.x + from.w, y1: fc.y, x2: to.x, y2: tc.y }
+      : { x1: from.x, y1: fc.y, x2: to.x + to.w, y2: tc.y };
+  }
+  return dy > 0
+    ? { x1: fc.x, y1: from.y + from.h, x2: tc.x, y2: to.y }
+    : { x1: fc.x, y1: from.y, x2: tc.x, y2: to.y + to.h };
+}
+
+function colorName(hex) {
+  return { '#3b82f6':'blue', '#10b981':'green', '#ef4444':'red', '#a855f7':'purple', '#f97316':'orange', '#06b6d4':'cyan', '#ec4899':'pink' }[hex] || 'blue';
+}
+
+// ==================== DETAIL PANEL ====================
+
+function openDetail(node) {
+  state.selectedNode = node.id;
+  document.getElementById('detail-title').textContent = `${node.label}`;
+  const badge = document.getElementById('detail-badge');
+  if (node.detail) {
+    badge.textContent = node.detail.status;
+    badge.style.background = node.detail.statusColor + '20';
+    badge.style.color = node.detail.statusColor;
+    badge.style.display = 'inline-block';
+
+    let html = `<p>${node.detail.desc}</p>`;
+    if (node.detail.sections) {
+      Object.entries(node.detail.sections).forEach(([h, items]) => {
+        html += `<h4>${h}</h4><ul>${items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+      });
+    }
+    document.getElementById('detail-body').innerHTML = html;
+  } else {
+    badge.style.display = 'none';
+    document.getElementById('detail-body').innerHTML = '';
+  }
+
+  const existing = state.notes.find(n => n.target === node.id);
+  document.getElementById('detail-note').value = existing ? existing.text : '';
+  document.getElementById('detail-panel').classList.add('open');
+  render();
+}
+
+function closeDetail() {
+  state.selectedNode = null;
+  document.getElementById('detail-panel').classList.remove('open');
+  render();
+}
+
+function saveNote() {
+  if (!state.selectedNode) return;
+  const text = document.getElementById('detail-note').value.trim();
+  if (!text) return;
+  const node = nodes.find(n => n.id === state.selectedNode);
+  const idx = state.notes.findIndex(n => n.target === state.selectedNode);
+  if (idx >= 0) state.notes[idx].text = text;
+  else state.notes.push({ id: Date.now(), target: state.selectedNode, label: node.label, subtitle: node.subtitle, text });
+  renderNotes();
+  render();
+}
+
+function renderNotes() {
+  const list = document.getElementById('notes-list');
+  document.getElementById('note-count').textContent = state.notes.length;
+  if (state.notes.length === 0) {
+    list.innerHTML = '<div class="notes-empty">Click any node to add notes</div>';
+    updatePrompt();
+    return;
+  }
+  list.innerHTML = '';
+  state.notes.forEach(n => {
+    const div = document.createElement('div');
+    div.className = 'note-item';
+    div.innerHTML = `<span class="target">${n.label}</span><div class="text">${n.text}</div><button class="delete-btn" data-id="${n.id}">&times;</button>`;
+    div.querySelector('.delete-btn').addEventListener('click', () => {
+      state.notes = state.notes.filter(x => x.id !== n.id);
+      renderNotes();
+      render();
+    });
+    list.appendChild(div);
+  });
+  updatePrompt();
+}
+
+// ==================== PROMPT ====================
+
+function updatePrompt() {
+  const parts = [];
+  const activeLayers = Object.entries(state.layers).filter(([, v]) => v).map(([k]) => LAYERS[k].label);
+  const preset = state.activePreset ? document.querySelector(`[data-preset="${state.activePreset}"]`)?.textContent : 'Custom';
+
+  parts.push(`Glytec AI SDR v1 tool stack \u2014 ${preset} view.`);
+  parts.push(`Layers: ${activeLayers.join(', ')}.`);
+
+  const notConn = nodes.filter(n => n.detail?.status === 'NOT CONNECTED' && state.layers[n.layer]);
+  const defined = nodes.filter(n => n.detail?.status?.includes('defined') && state.layers[n.layer]);
+  if (notConn.length) parts.push(`\nBlocking: ${notConn.map(n => n.label).join(', ')}.`);
+  if (defined.length) parts.push(`Needs build: ${defined.map(n => n.label).join(', ')}.`);
+
+  if (state.notes.length) {
+    parts.push('\nComponent notes:');
+    state.notes.forEach(n => parts.push(`\n${n.label} (${n.subtitle}):\n${n.text}`));
+  }
+
+  document.getElementById('prompt-output').textContent = parts.join('\n');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt-output').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1200);
+  });
+}
+
+function togglePromptBar() {
+  state.promptCollapsed = !state.promptCollapsed;
+  document.getElementById('prompt-bar').classList.toggle('collapsed', state.promptCollapsed);
+  document.getElementById('prompt-toggle').innerHTML = state.promptCollapsed ? '&#x25B2;' : '&#x25BC;';
+}
+
+// ==================== ZOOM & PAN ====================
+
+function zoomIn() { state.zoom = Math.min(state.zoom * 1.2, 3); render(); }
+function zoomOut() { state.zoom = Math.max(state.zoom / 1.2, 0.25); render(); }
+function zoomFit() { state.zoom = 0.72; state.panX = 30; state.panY = 10; render(); }
+
+svg.addEventListener('mousedown', e => {
+  if (e.target === svg || e.target.closest('#world') && !e.target.closest('g[opacity]')) {
+    panning = true;
+    panStart = { x: e.clientX - state.panX, y: e.clientY - state.panY };
+    svg.style.cursor = 'grabbing';
+  }
+});
+svg.addEventListener('mousemove', e => {
+  if (!panning) return;
+  state.panX = e.clientX - panStart.x;
+  state.panY = e.clientY - panStart.y;
+  const w = document.getElementById('world');
+  if (w) w.setAttribute('transform', `translate(${state.panX},${state.panY}) scale(${state.zoom})`);
+});
+svg.addEventListener('mouseup', () => { panning = false; svg.style.cursor = 'grab'; });
+svg.addEventListener('mouseleave', () => { panning = false; svg.style.cursor = 'grab'; });
+svg.addEventListener('wheel', e => {
+  e.preventDefault();
+  state.zoom = Math.max(0.25, Math.min(3, state.zoom * (e.deltaY > 0 ? 0.94 : 1.06)));
+  render();
+}, { passive: false });
+svg.addEventListener('click', e => {
+  if (e.target === svg) closeDetail();
+});
+
+// ==================== PRESET BUTTONS ====================
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+});
+
+// ==================== INIT ====================
+
+buildSidebar();
+zoomFit();
+</script>
+</body>
+</html>

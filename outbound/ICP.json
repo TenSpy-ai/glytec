@@ -1,0 +1,530 @@
+[
+  {
+    "Department": "Clinical Informatics",
+    "Title": "Associate CMIO",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Other"
+  },
+  {
+    "Department": "Clinical Informatics",
+    "Title": "Clinical Informaticist",
+    "Category": "Influencer",
+    "Intent Score": 70,
+    "Function Type": "Clinical",
+    "Job Level": "Individual Contributor"
+  },
+  {
+    "Department": "Clinical Informatics",
+    "Title": "Director of Clinical Informatics",
+    "Category": "Decision Maker",
+    "Intent Score": 85,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Clinical Informatics",
+    "Title": "Chief Medical Information Officer (CMIO)",
+    "Category": "Decision Maker",
+    "Intent Score": 90,
+    "Function Type": "Clinical",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Compliance",
+    "Title": "Chief Compliance Officer",
+    "Category": "Decision Maker",
+    "Intent Score": 75,
+    "Function Type": "Business",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Critical Care",
+    "Title": "ICU Quality Coordinator",
+    "Category": "Influencer",
+    "Intent Score": 60,
+    "Function Type": "Clinical",
+    "Job Level": "Mid-Level"
+  },
+  {
+    "Department": "Critical Care",
+    "Title": "Chief of Critical Care",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Critical Care",
+    "Title": "Medical Director, ICU",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Critical Care",
+    "Title": "Intensivist",
+    "Category": "Influencer",
+    "Intent Score": 60,
+    "Function Type": "Clinical",
+    "Job Level": "Individual Contributor"
+  },
+  {
+    "Department": "Critical Care",
+    "Title": "ICU Clinical Nurse Specialist",
+    "Category": "Influencer",
+    "Intent Score": 65,
+    "Function Type": "Clinical",
+    "Job Level": "Mid-Level"
+  },
+  {
+    "Department": "Data & Analytics",
+    "Title": "Chief Data Officer",
+    "Category": "Decision Maker",
+    "Intent Score": 75,
+    "Function Type": "Business",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Diabetes Services",
+    "Title": "Certified Diabetes Care and Education Specialist (CDCES)",
+    "Category": "Influencer",
+    "Intent Score": 70,
+    "Function Type": "Clinical",
+    "Job Level": "Mid-Level"
+  },
+  {
+    "Department": "Diabetes Services",
+    "Title": "Diabetes Clinical Nurse Specialist",
+    "Category": "Influencer",
+    "Intent Score": 70,
+    "Function Type": "Clinical",
+    "Job Level": "Mid-Level"
+  },
+  {
+    "Department": "Diabetes Services",
+    "Title": "Manager, Diabetes Education Program",
+    "Category": "Influencer",
+    "Intent Score": 65,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Diversity",
+    "Title": "Chief Diversity, Equity & Inclusion Officer (CDEIO)",
+    "Category": "Influencer",
+    "Intent Score": 60,
+    "Function Type": "Business",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Endocrinology",
+    "Title": "Diabetes Program Coordinator",
+    "Category": "Influencer",
+    "Intent Score": 65,
+    "Function Type": "Clinical",
+    "Job Level": "Mid-Level"
+  },
+  {
+    "Department": "Endocrinology",
+    "Title": "Advanced Practice Provider - Endocrinology",
+    "Category": "Influencer",
+    "Intent Score": 60,
+    "Function Type": "Clinical",
+    "Job Level": "Other"
+  },
+  {
+    "Department": "Endocrinology",
+    "Title": "Endocrinologist",
+    "Category": "Influencer",
+    "Intent Score": 75,
+    "Function Type": "Clinical",
+    "Job Level": "Other"
+  },
+  {
+    "Department": "Endocrinology",
+    "Title": "Medical Director, Diabetes Services",
+    "Category": "Decision Maker",
+    "Intent Score": 85,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Endocrinology",
+    "Title": "Chief of Endocrinology",
+    "Category": "Decision Maker",
+    "Intent Score": 90,
+    "Function Type": "Clinical",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Executive Leadership",
+    "Title": "Chief Operating Officer (COO)",
+    "Category": "Decision Maker",
+    "Intent Score": 90,
+    "Function Type": "Business",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Executive Leadership",
+    "Title": "Chief Executive Officer (CEO)",
+    "Category": "Decision Maker",
+    "Intent Score": 95,
+    "Function Type": "Business",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Finance",
+    "Title": "Chief Financial Officer (CFO)",
+    "Category": "Decision Maker",
+    "Intent Score": 90,
+    "Function Type": "Business",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Hospital Medicine",
+    "Title": "Vice President, Clinical Transformation",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Hospital Medicine",
+    "Title": "Vice President, Evidence Based Medicine",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Hospital Medicine",
+    "Title": "Chair of Medicine",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Hospital Medicine",
+    "Title": "Director of Inpatient Medicine",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Hospital Medicine",
+    "Title": "Hospitalist",
+    "Category": "Influencer",
+    "Intent Score": 65,
+    "Function Type": "Clinical",
+    "Job Level": "Individual Contributor"
+  },
+  {
+    "Department": "Hospital Medicine",
+    "Title": "Associate Chief of Hospital Medicine",
+    "Category": "Decision Maker",
+    "Intent Score": 75,
+    "Function Type": "Clinical",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Hospital Medicine",
+    "Title": "Medical Director of Hospital Medicine",
+    "Category": "Decision Maker",
+    "Intent Score": 85,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Hospital Medicine",
+    "Title": "Clinical Operations Lead - Hospitalist Service",
+    "Category": "Influencer",
+    "Intent Score": 70,
+    "Function Type": "Clinical",
+    "Job Level": "Individual Contributor"
+  },
+  {
+    "Department": "Innovation",
+    "Title": "Chief Innovation Officer",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Business",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Nursing",
+    "Title": "Chief Nursing Officer (CNO)",
+    "Category": "Decision Maker",
+    "Intent Score": 95,
+    "Function Type": "Clinical",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Nursing",
+    "Title": "Clinical Nurse Specialist - Med/Surg",
+    "Category": "Influencer",
+    "Intent Score": 65,
+    "Function Type": "Clinical",
+    "Job Level": "Mid-Level"
+  },
+  {
+    "Department": "Nursing",
+    "Title": "Inpatient Nursing Supervisor",
+    "Category": "Influencer",
+    "Intent Score": 60,
+    "Function Type": "Clinical",
+    "Job Level": "Other"
+  },
+  {
+    "Department": "Nursing",
+    "Title": "Nursing Clinical Practice Leader - Acute Care",
+    "Category": "Influencer",
+    "Intent Score": 65,
+    "Function Type": "Clinical",
+    "Job Level": "Other"
+  },
+  {
+    "Department": "Nursing",
+    "Title": "Nurse Educator - Diabetes",
+    "Category": "Influencer",
+    "Intent Score": 70,
+    "Function Type": "Clinical",
+    "Job Level": "Mid-Level"
+  },
+  {
+    "Department": "Nursing",
+    "Title": "Inpatient RN - Med/Surg or ICU",
+    "Category": "Influencer",
+    "Intent Score": 50,
+    "Function Type": "Clinical",
+    "Job Level": "Other"
+  },
+  {
+    "Department": "Nursing",
+    "Title": "Assistant Director of Nursing - Quality and Safety",
+    "Category": "Influencer",
+    "Intent Score": 70,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Nursing",
+    "Title": "Director of Inpatient Nursing",
+    "Category": "Decision Maker",
+    "Intent Score": 85,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Nursing Informatics",
+    "Title": "Director of Nursing Informatics",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Nursing Informatics",
+    "Title": "Clinical Nurse Informaticist",
+    "Category": "Influencer",
+    "Intent Score": 70,
+    "Function Type": "Clinical",
+    "Job Level": "Individual Contributor"
+  },
+  {
+    "Department": "Patient Safety",
+    "Title": "Risk Manager - Clinical Services",
+    "Category": "Influencer",
+    "Intent Score": 65,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Patient Safety",
+    "Title": "Safety & Quality Program Manager",
+    "Category": "Influencer",
+    "Intent Score": 65,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Patient Safety",
+    "Title": "Patient Safety Officer",
+    "Category": "Influencer",
+    "Intent Score": 70,
+    "Function Type": "Clinical",
+    "Job Level": "Other"
+  },
+  {
+    "Department": "Pharmacy",
+    "Title": "Director, Pharmacy",
+    "Category": "Influencer",
+    "Intent Score": 60,
+    "Function Type": "Clinical",
+    "Job Level": "Mid-Level"
+  },
+  {
+    "Department": "Pharmacy",
+    "Title": "Chief Pharmacy Officer",
+    "Category": "Decision Maker",
+    "Intent Score": 85,
+    "Function Type": "Clinical",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Pharmacy",
+    "Title": "Pharmacy Clinical Coordinator",
+    "Category": "Influencer",
+    "Intent Score": 60,
+    "Function Type": "Clinical",
+    "Job Level": "Mid-Level"
+  },
+  {
+    "Department": "Pharmacy",
+    "Title": "Director of Clinical Pharmacy Services",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Pharmacy",
+    "Title": "Clinical Pharmacist - Endocrine",
+    "Category": "Influencer",
+    "Intent Score": 60,
+    "Function Type": "Clinical",
+    "Job Level": "Individual Contributor"
+  },
+  {
+    "Department": "Pharmacy",
+    "Title": "Pharmacy Informatics Lead",
+    "Category": "Influencer",
+    "Intent Score": 65,
+    "Function Type": "Clinical",
+    "Job Level": "Other"
+  },
+  {
+    "Department": "Quality Improvement",
+    "Title": "Director of Quality Improvement",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Quality Improvement",
+    "Title": "Chief Quality Officer (CQO)",
+    "Category": "Decision Maker",
+    "Intent Score": 90,
+    "Function Type": "Clinical",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Quality Improvement",
+    "Title": "Inpatient Quality Improvement Nurse",
+    "Category": "Influencer",
+    "Intent Score": 65,
+    "Function Type": "Clinical",
+    "Job Level": "Individual Contributor"
+  },
+  {
+    "Department": "Quality Improvement",
+    "Title": "Quality Improvement Coordinator",
+    "Category": "Influencer",
+    "Intent Score": 65,
+    "Function Type": "Clinical",
+    "Job Level": "Mid-Level"
+  },
+  {
+    "Department": "Strategy",
+    "Title": "Chief Strategy Officer (CSO)",
+    "Category": "Decision Maker",
+    "Intent Score": 85,
+    "Function Type": "Business",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Surgery",
+    "Title": "Transplant Surgeon",
+    "Category": "Influencer",
+    "Intent Score": 70,
+    "Function Type": "Clinical",
+    "Job Level": "Individual Contributor"
+  },
+  {
+    "Department": "Surgery",
+    "Title": "Chief of Transplant Surgery",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Surgery",
+    "Title": "Vascular Surgeon",
+    "Category": "Influencer",
+    "Intent Score": 70,
+    "Function Type": "Clinical",
+    "Job Level": "Individual Contributor"
+  },
+  {
+    "Department": "Surgery",
+    "Title": "Chief of Vascular Surgery",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Surgery",
+    "Title": "Surgical ICU Director",
+    "Category": "Decision Maker",
+    "Intent Score": 85,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  },
+  {
+    "Department": "Surgery",
+    "Title": "Chief of General Surgery",
+    "Category": "Decision Maker",
+    "Intent Score": 80,
+    "Function Type": "Clinical",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Surgery",
+    "Title": "Cardiac Surgeon",
+    "Category": "Influencer",
+    "Intent Score": 75,
+    "Function Type": "Clinical",
+    "Job Level": "Individual Contributor"
+  },
+  {
+    "Department": "Surgery",
+    "Title": "Chief of Cardiothoracic Surgery",
+    "Category": "Decision Maker",
+    "Intent Score": 85,
+    "Function Type": "Clinical",
+    "Job Level": "Executive"
+  },
+  {
+    "Department": "Surgery",
+    "Title": "General Surgeon",
+    "Category": "Influencer",
+    "Intent Score": 65,
+    "Function Type": "Clinical",
+    "Job Level": "Individual Contributor"
+  },
+  {
+    "Department": "Surgery",
+    "Title": "Perioperative Medical Director",
+    "Category": "Decision Maker",
+    "Intent Score": 85,
+    "Function Type": "Clinical",
+    "Job Level": "Director"
+  }
+]
