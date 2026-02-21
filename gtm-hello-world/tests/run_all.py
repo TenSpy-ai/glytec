@@ -24,6 +24,7 @@ PHASES = [
         "test_05_email_tools",
         "test_08_replies_clay",
         "test_09_config_server",
+        "test_11_monitoring",
     ], True),
     ("Phase 2 — MCP write tests", [
         "test_03_campaign_lifecycle",
