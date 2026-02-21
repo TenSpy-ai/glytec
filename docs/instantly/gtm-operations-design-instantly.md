@@ -14,7 +14,7 @@ Instantly exposes two programmatic interfaces:
 
 1. **MCP Server** (`instantly-mcp v1.0.1`) — 38 tools over Streamable HTTP at `https://mcp.instantly.ai/mcp/{API_KEY}`. This is the primary interface for the AI agent. The agent calls tools directly — no SDK, no scripts, no wrappers. Each tool maps to one or more REST operations and handles pagination, validation, and error formatting natively.
 
-2. **REST API V2** (`https://api.instantly.ai/api/v2`) — ~118 endpoints with Bearer token auth and 168+ granular scopes. Covers everything MCP does plus ~80 additional endpoints for advanced features. Required only when MCP doesn't expose a capability.
+2. **REST API V2** (`https://api.instantly.ai/api/v2`) — ~169 endpoints with Bearer token auth and 168+ granular scopes. Covers everything MCP does plus ~131 additional endpoints for advanced features. Required only when MCP doesn't expose a capability.
 
 ### The 38 MCP Tools — Categorized
 
@@ -103,7 +103,7 @@ Instantly exposes two programmatic interfaces:
 |------|-------------|
 | `get_server_info` | Server version, loaded tool categories, configuration |
 
-### What MCP Does NOT Cover (~80 API Endpoints)
+### What MCP Does NOT Cover (~131 API Endpoints)
 
 These capabilities require direct REST calls to `https://api.instantly.ai/api/v2`:
 
@@ -111,18 +111,25 @@ These capabilities require direct REST calls to `https://api.instantly.ai/api/v2
 |----------|-----------|----------------|
 | **Lead Labels** | CRUD (5 endpoints) | AI-integrated lead categorization. Labels drive interest scoring and can trigger webhooks. Required for AI classification workflows |
 | **Campaign Subsequences** | CRUD + pause/resume/sending-status (9 endpoints) | Behavior-triggered follow-up sequences. Conditions: reply content, CRM status, opens, clicks, campaign completion. Critical for multi-touch nurture |
+| **Campaigns (API-only)** | 7 additional endpoints | duplicate, export, from-export, share, variables, sending-status, count-launched. Beyond MCP's 8 core tools |
+| **Leads (API-only)** | 5 additional endpoints | bulk delete, subsequence move/remove, merge, bulk-assign, update-interest-status. Beyond MCP's 12 core tools |
 | **Email Verification GET** | Poll verification status (1 endpoint) | MCP's `verify_email` triggers verification but returns immediately if >10s. Polling the result requires the API |
-| **Inbox Placement Testing** | Create/list/get/update/pause/resume/ESP options (7 endpoints) | One-time and automated placement tests across ESPs and geographies. SPF/DKIM/DMARC validation, SpamAssassin scoring |
-| **Inbox Placement Analytics** | Per-email deliverability results (1 endpoint) | Per-recipient inbox vs spam breakdown, by ESP and geography |
-| **Inbox Placement Reports** | Blacklist + SpamAssassin reports (1 endpoint) | IP blacklist monitoring, domain reputation, spam score details |
+| **Inbox Placement — Tests** | Create/list/get/update/pause/resume (6 endpoints) | One-time and automated placement tests across ESPs and geographies. SPF/DKIM/DMARC validation, SpamAssassin scoring |
+| **Inbox Placement — Analytics** | Per-email deliverability + aggregates (5 endpoints) | Per-recipient inbox vs spam breakdown, by ESP and geography |
+| **Inbox Placement — Reports** | Blacklist + SpamAssassin (2 endpoints) | IP blacklist monitoring, domain reputation, spam score details |
+| **SuperSearch Enrichment** | 10 endpoints | Lead discovery + AI-powered enrichment with 14+ model options. Major capability for contact research |
 | **Webhooks** | Full CRUD + event types + test + resume (8 endpoints) | 19+ event types including custom label triggers. Essential for real-time event ingestion into SQLite |
-| **Block List Entries** | CRUD (4 endpoints) | Domain and email-level blocking. Full lifecycle — create, list, get, delete |
+| **Webhook Events** | 4 endpoints | Delivery log, retry tracking, summary, summary-by-date. Webhook observability |
+| **Block List Entries** | CRUD + update (5 endpoints) | Domain and email-level blocking. Full lifecycle — create, list, get, update (PATCH), delete |
 | **Custom Tags** | CRUD (5 endpoints) | Organize accounts and campaigns. Tags used as filters in MCP list operations |
 | **Custom Tag Mappings** | Create/list/delete (3 endpoints) | Associate tags with accounts and campaigns |
-| **Audit Log** | List with filters (1 endpoint) | Full activity tracking: API vs UI, IP, user, timestamps. 16+ activity types |
-| **Custom Prompt Templates** | CRUD (5 endpoints) | AI prompt templates for copywriting, personalization. Supports GPT-3.5 through GPT-5, o3 |
+| **Audit Log** | List with filters (1 endpoint) | Full activity tracking: API vs UI, IP, user, timestamps. 21 activity types |
+| **Custom Prompt Templates** | CRUD (5 endpoints) | AI prompt templates for copywriting, personalization. 21+ AI models including Claude 4.5-sonnet, GPT-5, Gemini, Grok |
 | **Sales Flows** | CRUD (5 endpoints) | Smart views for filtering leads by engagement behavior. Powerful query-based lead segmentation |
 | **Email Templates** | CRUD (5 endpoints) | Reusable email templates stored in Instantly |
+| **DFY Email Account Orders** | 7 endpoints | Managed email account ordering with domain checking. Done-for-you mailbox provisioning |
+| **OAuth Initialization** | 3 endpoints | Google/Microsoft OAuth init + session polling. Programmatic initiation of browser-based consent flows |
+| **Workspace Billing** | 2 endpoints | Plan + subscription details |
 | **CRM Actions** | Phone numbers (2 endpoints) | Twilio phone number management |
 | **API Key** | Create with scopes (1 endpoint) | Programmatic key creation with granular permissions |
 | **Workspace** | List (1 endpoint) | Workspace enumeration |
@@ -147,22 +154,156 @@ For any operation, follow this priority:
 | Domain | MCP Tools | API-Only Endpoints | Coverage |
 |--------|-----------|-------------------|----------|
 | Accounts | 6 | 2 (batch warmup, daily analytics) | 95% |
-| Campaigns | 8 | 1 (activate-all-sending-accounts) | 95% |
-| Leads | 12 | 3 (subsequence move, lead GET by UUID direct) | 90% |
+| Campaigns | 8 | 7 (duplicate, export, from-export, share, variables, sending-status, count-launched) | 95% of daily ops |
+| Leads | 12 | 5 (bulk delete, subsequence move/remove, merge, bulk-assign, update-interest-status) | ~80% |
 | Emails | 6 | 2 (forward, delete email) | 85% |
 | Analytics | 3 | 4 (step analytics, overview, account daily, vitals) | 55% |
 | Background Jobs | 2 | 0 | 100% |
 | Lead Labels | 0 | 5 | 0% — API only |
 | Subsequences | 0 | 9 | 0% — API only |
-| Inbox Placement | 0 | 9 | 0% — API only |
+| Inbox Placement | 0 | 13 (6 tests + 5 analytics + 2 reports) | 0% — API only |
 | Webhooks | 0 | 8 | 0% — API only |
-| Block List | 0 | 4 | 0% — API only |
+| Webhook Events | 0 | 4 (delivery log, retry, summary, summary-by-date) | 0% — API only |
+| Block List | 0 | 5 (includes PATCH update) | 0% — API only |
+| SuperSearch Enrichment | 0 | 10 (lead discovery + AI enrichment, 14+ models) | 0% — API only |
 | Tags/Mappings | 0 | 8 | 0% — API only |
 | Admin (audit, keys, workspace) | 0 | 10 | 0% — API only |
 | Templates/Flows/Prompts | 0 | 15 | 0% — API only |
-| **Total** | **38** | **~80** | **MCP handles ~32% of endpoints but covers ~85% of daily operational actions** |
+| DFY Email Accounts | 0 | 7 (managed mailbox ordering + domain checks) | 0% — API only |
+| OAuth Initialization | 0 | 3 (Google/Microsoft init + session polling) | 0% — API only |
+| Workspace Billing | 0 | 2 (plan + subscription) | 0% — API only |
+| **Total** | **38** | **~131** | **MCP handles ~22% of endpoints but covers ~85% of daily operational actions** |
 
-The 38 MCP tools cover the high-frequency operations (account management, campaign CRUD, lead CRUD, email reading/replying, analytics). The ~80 API-only endpoints are mostly setup-once or low-frequency operations (webhooks, tags, placement tests, templates, admin).
+The 38 MCP tools cover the high-frequency operations (account management, campaign CRUD, lead CRUD, email reading/replying, analytics). The ~131 API-only endpoints are mostly setup-once or low-frequency operations (webhooks, tags, placement tests, templates, SuperSearch, admin).
+
+### Verified MCP Behavior (from QA testing — 2026-02-21)
+
+> Full test results with 38-tool behavior matrix: [`docs/instantly/api-test-results.md`](api-test-results.md)
+
+**Protocol details verified by testing:**
+- MCP URL: `https://mcp.instantly.ai/sse?api_key={api_key}` (SSE transport)
+- All tool arguments **must be nested under a `params` key**: `{"arguments": {"params": {...}}}`
+- Responses can be `dict`, `list`, or plain `str` (when workspace is empty) — always type-check
+- Pagination key is `items` (not `data`)
+
+**`create_campaign` MCP schema differs from REST API:**
+- MCP accepts: `name` (required), `subject` (required), `body` (required), plus optional `email_list`, `timing_from`/`timing_to`, `timezone`, `daily_limit`, `email_gap`, `stop_on_reply`, `sequence_steps`, `step_delay_days`, `sequence_subjects`, `sequence_bodies`
+- MCP does **NOT** accept: `campaign_schedule` or `sequences` (these are REST-only)
+- Fails with `{"success": false, "stage": "no_accounts"}` when no sending accounts exist
+
+**Environment constraints (current):**
+- 0 sending accounts → campaign creation untestable live
+- Block list REST writes → 403 (plan restriction, local DB is fallback)
+- `verify_email` takes 5-45 seconds per call
+
+---
+
+## Part 0.5 — Enrichment Pipeline: Where Contacts & Signals Come From
+
+Before any campaign runs, contacts need to be discovered, enriched, and scored. The enrichment pipeline — built on the Definitive Healthcare HospitalView API — is that foundation. It has already been run and produced the data that will fuel the first campaigns.
+
+### The Enrichment Database
+
+**Location:** `enrichment/data/enrichment.db` (SQLite, WAL mode, ~280 MB)
+
+**Total records: 814,700+** across 8 tables:
+
+| Table | Records | What's in it |
+|-------|---------|-------------|
+| `executives` | 156,080 | Hospital executives — name, title, email, phone, LinkedIn, position level, ICP match status |
+| `physicians` | 252,016 | Physicians — NPI, specialty, Medicare data, practice phone, affiliated facilities |
+| `trigger_signals` | 301,510 | Leadership changes, EHR migrations, M&A activity, affiliation changes, new facilities |
+| `account_enrichment` | 105,131 | Quality penalties (HAC, readmission, VBP), financials (margins, revenue), GPO/IDN memberships |
+| `api_calls` | 38,175 | Full API call log with response times, retries, pagination state |
+| `runs` | 23 | Recipe execution tracking with status, duration, facility counts |
+
+### Contact Coverage
+
+**Executives (156,080):**
+- 17,557 ICP-matched (11.2% match rate across 12 matched titles)
+- 59.5% have a primary email address
+- 90.9% have a LinkedIn URL
+- 99.99% have a phone number
+- Position levels: 52.2% Manager/Director, 15.9% C-Level, 2.1% VP
+
+**Physicians (252,016):**
+- 112,237 unique NPIs
+- 82.6% have Medicare claims data
+- 97.6% have a practice phone number
+- Specialties: endocrinology, hospital medicine, internal medicine, medical directors
+
+**ICP matching:** 66 titles from the ICP taxonomy + 2 synthetic titles (Chief Medical Officer, Chief of Medicine) = 68 total. 12 titles matched in the data:
+
+| Matched Title | Count |
+|--------------|-------|
+| Director, Pharmacy | 4,592 |
+| CNO (Chief Nursing Officer) | 2,341 |
+| CEO | 2,143 |
+| Director, Inpatient Nursing | 2,080 |
+| CMO (Chief Medical Officer) | 1,912 |
+| CFO | 1,757 |
+| COO | 1,429 |
+| Chief Pharmacy Officer | 339 |
+| Chief Compliance Officer | 280 |
+| CQO (Chief Quality Officer) | 273 |
+| CMIO | 223 |
+| Chief Strategy Officer | 188 |
+
+### The 10 Enrichment Recipes
+
+The pipeline has 10 recipes. 5 have been executed; 5 are available but haven't run yet.
+
+| # | Recipe | Status | What it produces |
+|---|--------|--------|-----------------|
+| R1 | Full Contact Extraction | **Not yet run** | Every contact at a single hospital (test/on-demand use) |
+| R2 | ICP-Matched Discovery | **Not yet run** | ICP-targeted executives at a single hospital (test/on-demand use) |
+| R3 | Leadership Changes | **Executed** — 4,251 facilities, 5.9h | 301,510 trigger signals (recently-updated executives, title changes, departures) |
+| R4 | Tiered Discovery | **Executed** — 4,251 facilities, 10.5h | 156,080 executives with ICP matching (17,557 ICP-matched) |
+| R5 | EHR-Segmented Discovery | **Not yet run** | Contacts segmented by EHR vendor (Epic/Cerner/MEDITECH) |
+| R6 | Financial Distress + Quality | **Executed** — 1,189 facilities, 5.9h | 2,993 contacts at negative-margin hospitals + 1,819 quality penalties |
+| R7 | Geographic / Rep Territory | **Not yet run** | Contacts filtered by sales rep territory assignment |
+| R8 | Physician Champions | **Executed** — 1,387 facilities, 7.3h | 252,016 physicians (endocrinologists, hospitalists, internists, med directors) |
+| R9 | Account Bundle | **Executed** — 4,249 facilities, 6.1h | 105,131 records (quality, financial, membership enrichment) |
+| R10 | Every Contact at Company | **Not yet run** | Exhaustive per-system extraction (all contacts at a parent system) |
+
+### Schedule for Unrun Recipes
+
+| Recipe | When to run | Why |
+|--------|------------|-----|
+| R5 (EHR-Segmented) | Before first EHR-targeted campaigns | Segments contacts by Epic/Cerner/MEDITECH so campaigns can target by EHR vendor |
+| R7 (Geographic/Territory) | Before territory-based campaigns | Filters contacts by assigned rep so outreach aligns with territory ownership |
+| R1, R2, R10 | On-demand per-hospital deep dives | When a specific account becomes high-priority or a deal progresses — get exhaustive contact coverage for that system |
+
+### Monthly Re-Run Plan
+
+| Cadence | Recipes | Purpose |
+|---------|---------|---------|
+| **Monthly** | R3 (Leadership Changes) + R9 (Account Bundle) | Catch new leadership hires/departures, financial shifts, quality penalty updates, membership changes |
+| **Quarterly** | R4 (Tiered Discovery) | Full ICP contact coverage refresh — new hires, title changes, email updates across all 4,251 target facilities |
+| **On-demand** | R1, R2, R10 | Deep dives when accounts escalate in priority |
+
+### How Enrichment Feeds Into Campaigns
+
+```
+enrichment/data/enrichment.db          ← DH HospitalView API (814K+ records)
+        │
+        ▼
+  Campaign targeting queries           ← "Give me CNOs at Epic hospitals with 500+ beds"
+        │
+        ▼
+  docs/campaigns/*.md                  ← Campaign design files (human-reviewed)
+        │
+        ▼
+  Instantly via MCP                    ← create_campaign → add_leads_bulk → activate
+        │
+        ▼
+  SQLite homebase                      ← metric_snapshots, reply_sentiment, engagement_events
+        │
+        ▼
+  Clay → Salesforce                    ← Positive replies pushed downstream
+```
+
+The enrichment DB is **read-only from the campaign system's perspective** — it's populated by `enrichment/runner.py` and queried for targeting. Campaign execution data (metrics, replies, sentiment) flows into the SQLite homebase, not back into the enrichment DB.
 
 ---
 
@@ -342,8 +483,8 @@ For each user story: what MCP provides, what the direct API adds, what SQLite fi
 
 | Task | Why | Frequency |
 |------|-----|-----------|
-| Reconnect OAuth mailboxes (Google/Microsoft) | OAuth re-authorization requires browser-based flow | As needed (check daily via `list_accounts` status filter) |
-| Initial mailbox setup for Google/Microsoft | OAuth connection flow requires browser | Onboarding only |
+| Reconnect OAuth mailboxes (Google/Microsoft) | OAuth re-authorization requires browser-based flow. Can be **initiated** via API (`POST /oauth/google/init`, `POST /oauth/microsoft/init`) and polled (`GET /oauth/session/status/{sessionId}`), but the user must still complete the browser-based consent flow | As needed (check daily via `list_accounts` status filter) |
+| Initial mailbox setup for Google/Microsoft | OAuth connection flow requires browser. API can initiate and poll, but user must complete consent | Onboarding only |
 | View Instantly's built-in AI interest scoring UI | AI scoring runs automatically; results accessible via API (`ai_interest_value` on emails) but the visual analysis interface is UI-only | Optional |
 
 That's it. Three items, and two of them are onboarding-only OAuth flows. Everything else is fully automatable.
@@ -456,6 +597,7 @@ That's it. Three items, and two of them are onboarding-only OAuth flows. Everyth
 6. **instantly_id links local records to Instantly** — UUIDs, nullable (not everything gets pushed)
 7. **Soft deletes** — suppressed/archived flags instead of row deletion
 8. **Instantly field names** — where data comes from Instantly, use their field names (snake_case, UUIDs)
+9. **Custom variables are flat JSON only** — Instantly's `custom_variables`/`payload` field accepts only flat key:value pairs (string, number, boolean, null). No nested objects or arrays. Violation causes silent data loss
 
 ### Tables
 
@@ -1153,6 +1295,16 @@ CREATE INDEX idx_webhooks_event ON webhooks(event_type);
 
 -- Lead labels
 CREATE INDEX idx_labels_interest ON lead_labels(interest_status);
+
+-- Reply sentiment
+CREATE INDEX idx_sentiment_campaign ON reply_sentiment(campaign_id);
+CREATE INDEX idx_sentiment_contact ON reply_sentiment(contact_email);
+CREATE INDEX idx_sentiment_value ON reply_sentiment(sentiment);
+CREATE INDEX idx_sentiment_pushed ON reply_sentiment(pushed_to_clay);
+
+-- Clay push log
+CREATE INDEX idx_clay_push_sentiment ON clay_push_log(reply_sentiment_id);
+CREATE INDEX idx_clay_push_sf_status ON clay_push_log(salesforce_sync_status);
 ```
 
 ---
@@ -1430,6 +1582,9 @@ Campaign planning       → campaign_ideas + email drafting workflow
 Account scoring         → 6-factor weighted model from facility data
 ICP matching            → 66-title taxonomy with fuzzy matching
 Contact enrichment      → Multi-source enrichment from ZoomInfo, DH, web scraping
+                           Note: Instantly also offers SuperSearch Enrichment (10 API endpoints) for lead
+                           discovery and AI-powered enrichment with 14+ model options. This overlaps with
+                           our DH enrichment pipeline but could supplement it for contacts not in the DH database.
 Segment analytics       → Tag campaigns by EHR/persona/geo, aggregate metrics locally
 Account engagement      → Roll up contact-level events to account-level intelligence
 Historical trending     → Daily metric snapshots for 30/60/90 day analysis
@@ -1559,3 +1714,20 @@ The enrichment pipeline (`enrichment/runner.py`) should be re-run on a regular s
 | **On-demand** | R1, R2, R10 | Deep dives on specific hospitals/systems when an account becomes high-priority or a deal is progressing |
 
 New signals from refreshed enrichment data feed back into campaign planning — a new CNO hire detected by R3 becomes a trigger for a personalized outreach sequence.
+
+---
+
+## Potential Future Enhancements
+
+> These are not blockers — the system is fully functional today. Ideas for future improvement if/when the need arises.
+
+| Enhancement | Area | Details |
+|-------------|------|---------|
+| Auto-pause on kill-switch breach | pull_metrics.py | Currently logs WARNING when bounce > 5%. Could auto-call `pause_campaign` and send an alert. |
+| Pre-flight checklist validation | launch_campaign.py | Automated checks before activation: mailboxes assigned? leads enrolled? sequences configured? warmup score > 85? |
+| Week-over-week trend queries | check_status.py | Automated `metric_snapshots` comparison across dates. Currently requires manual SQL. |
+| Webhook retry logic | push_to_clay.py | Retry on 5xx with exponential backoff. Currently fails silently on HTTP errors. |
+| Scheduled automation | Ops | Cron jobs or task scheduler for daily `pull_metrics` + `process_replies`, monthly signal refresh, quarterly contact refresh. |
+| Domain diversity checker | launch_campaign.py | Warn if all assigned mailboxes share the same domain. Spread across domains for deliverability. |
+| Contact scoring in DB | enroll | Apply ICP scoring logic from enrichment pipeline to hello-world contacts before enrollment. |
+| Keyword admin UI | config_server.py | Let operators edit positive/negative/OOO keyword lists via the config UI instead of editing `process_replies.py` directly. |

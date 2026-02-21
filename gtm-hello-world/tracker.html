@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GTM Hello World — Campaign Tracker</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2129;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --orange: #db6d28;
+    --purple: #bc8cff;
+    --pink: #f778ba;
+    --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    padding: 24px; max-width: 1260px; margin: 0 auto;
+    line-height: 1.5;
+  }
+  h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 20px; }
+
+  /* ── Top-level tabs ────────────────────────────── */
+  .tab-bar {
+    display: flex; gap: 0; margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-bar button {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    color: var(--text-dim); padding: 10px 20px; font-size: 14px;
+    cursor: pointer; font-weight: 500; transition: all 0.15s;
+  }
+  .tab-bar button:hover { color: var(--text); }
+  .tab-bar button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ── Campaign selector ─────────────────────────── */
+  .campaign-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+  .campaign-bar button {
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.15s;
+  }
+  .campaign-bar button:hover { border-color: var(--accent); }
+  .campaign-bar button.active { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 600; }
+
+  /* ── Stats row ─────────────────────────────────── */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .stat-card .label { font-size: 11px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.5px; }
+  .stat-card .value { font-size: 22px; font-weight: 600; margin-top: 4px; }
+  .stat-card .value.green { color: var(--green); }
+  .stat-card .value.red { color: var(--red); }
+
+  /* ── Pipeline steps ────────────────────────────── */
+  .pipeline { display: flex; flex-direction: column; margin-bottom: 24px; }
+  .step {
+    display: grid; grid-template-columns: 48px 1fr 180px 120px;
+    align-items: start; gap: 12px; padding: 16px 0;
+    border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s;
+  }
+  .step:hover { background: rgba(88,166,255,0.04); }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    width: 36px; height: 36px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; font-weight: 700; font-size: 14px;
+    border: 2px solid var(--border); color: var(--text-dim); flex-shrink: 0;
+  }
+  .step-num.done { background: var(--green); border-color: var(--green); color: #0d1117; }
+  .step-num.active { background: var(--accent); border-color: var(--accent); color: #0d1117; animation: pulse 2s infinite; }
+  .step-num.blocked { background: var(--red); border-color: var(--red); color: #0d1117; }
+  .step-num.skipped { background: var(--text-dim); border-color: var(--text-dim); color: #0d1117; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
+  .step-content h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .step-content .desc { font-size: 13px; color: var(--text-dim); line-height: 1.4; }
+  .step-content .skill-ref {
+    display: inline-block; background: rgba(188,140,255,0.12); color: var(--purple);
+    font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 4px; margin-top: 6px;
+  }
+  .step-tool { font-size: 12px; color: var(--text-dim); text-align: right; }
+  .step-tool code {
+    font-family: var(--mono); background: rgba(88,166,255,0.08);
+    padding: 1px 6px; border-radius: 3px; color: var(--accent); font-size: 11px;
+  }
+  .step-status select {
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; width: 100%;
+  }
+  .step-notes { display: none; grid-column: 1 / -1; margin-top: 8px; }
+  .step-notes.open { display: block; }
+  .step-notes textarea {
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px; font-size: 13px; font-family: inherit;
+    resize: vertical; min-height: 60px;
+  }
+  .detail-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+  .detail-panel h2 { font-size: 16px; margin-bottom: 12px; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
+  .detail-grid .label { color: var(--text-dim); }
+  .detail-grid .val { font-weight: 500; }
+
+  /* ── Docs section styles ───────────────────────── */
+  .docs-nav {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px;
+  }
+  .docs-nav button {
+    background: var(--surface); color: var(--text-dim); border: 1px solid var(--border);
+    padding: 5px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; transition: all 0.15s;
+  }
+  .docs-nav button:hover { color: var(--text); border-color: var(--text-dim); }
+  .docs-nav button.active { background: var(--purple); color: #0d1117; border-color: var(--purple); font-weight: 600; }
+
+  .docs-section { display: none; }
+  .docs-section.active { display: block; }
+
+  .doc-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; margin-bottom: 16px; overflow: hidden;
+  }
+  .doc-card-header {
+    padding: 14px 18px; cursor: pointer; display: flex; justify-content: space-between;
+    align-items: center; user-select: none; transition: background 0.15s;
+  }
+  .doc-card-header:hover { background: var(--surface2); }
+  .doc-card-header h3 { font-size: 14px; font-weight: 600; }
+  .doc-card-header .badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500;
+  }
+  .badge-skill { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .badge-cmd { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .badge-db { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-doc { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .badge-data { background: rgba(247,120,186,0.15); color: var(--pink); }
+  .badge-script { background: rgba(219,109,40,0.15); color: var(--orange); }
+
+  .doc-card-body { display: none; padding: 0 18px 18px; }
+  .doc-card.open .doc-card-body { display: block; }
+  .doc-card .chevron { transition: transform 0.2s; color: var(--text-dim); }
+  .doc-card.open .chevron { transform: rotate(90deg); }
+
+  .fp {
+    font-family: var(--mono); font-size: 12px; color: var(--text-dim);
+    background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 3px;
+    word-break: break-all;
+  }
+  .sample {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px 14px; margin: 10px 0; font-family: var(--mono); font-size: 12px;
+    line-height: 1.6; overflow-x: auto; white-space: pre; color: var(--text);
+  }
+  .sample .comment { color: var(--text-dim); }
+  .sample .keyword { color: var(--purple); }
+  .sample .string { color: var(--green); }
+
+  .desc-text { font-size: 13px; color: var(--text-dim); margin: 8px 0; line-height: 1.5; }
+  .desc-text strong { color: var(--text); }
+
+  table.ref {
+    width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0;
+  }
+  table.ref th {
+    text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border);
+    color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  table.ref td {
+    padding: 7px 10px; border-bottom: 1px solid rgba(48,54,61,0.5);
+    vertical-align: top;
+  }
+  table.ref tr:last-child td { border-bottom: none; }
+  table.ref code {
+    font-family: var(--mono); font-size: 11px; background: rgba(88,166,255,0.08);
+    padding: 1px 5px; border-radius: 3px; color: var(--accent);
+  }
+
+  .section-divider {
+    border: none; border-top: 1px solid var(--border); margin: 16px 0;
+  }
+
+  /* ── Footer ────────────────────────────────────── */
+  .footer { color: var(--text-dim); font-size: 12px; margin-top: 32px; text-align: center; }
+  .footer button {
+    background: none; border: none; cursor: pointer; text-decoration: underline; font-size: 12px;
+  }
+  .footer .btn-red { color: var(--red); }
+  .footer .btn-blue { color: var(--accent); }
+
+  @media (max-width: 768px) {
+    .step { grid-template-columns: 36px 1fr; }
+    .step-tool, .step-status { grid-column: 2; }
+  }
+
+  /* ── Architecture tab ───────────────────────── */
+  .arch-section { margin-bottom: 36px; }
+  .arch-section h2 {
+    font-size: 16px; font-weight: 600; margin-bottom: 16px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+
+  /* Data flow diagram */
+  .flow-diagram {
+    display: flex; flex-direction: column; gap: 0;
+    padding: 24px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; overflow-x: auto;
+  }
+  .flow-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0; flex-wrap: nowrap; min-width: 900px;
+  }
+  .flow-node {
+    padding: 12px 16px; border-radius: 8px; text-align: center;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+    min-width: 120px; border: 2px solid;
+    position: relative;
+  }
+  .flow-node .node-sub {
+    font-weight: 400; font-size: 11px; color: var(--text-dim);
+    margin-top: 4px; white-space: normal;
+  }
+  .flow-node.external { background: rgba(88,166,255,0.08); border-color: var(--accent); color: var(--accent); }
+  .flow-node.db { background: rgba(63,185,80,0.08); border-color: var(--green); color: var(--green); }
+  .flow-node.internal { background: rgba(188,140,255,0.08); border-color: var(--purple); color: var(--purple); }
+  .flow-node.operator { background: rgba(210,153,34,0.08); border-color: var(--yellow); color: var(--yellow); }
+  .flow-node.crm { background: rgba(247,120,186,0.08); border-color: var(--pink); color: var(--pink); }
+  .flow-arrow {
+    color: var(--text-dim); font-size: 18px; padding: 0 8px;
+    display: flex; align-items: center; flex-shrink: 0;
+  }
+  .flow-arrow-down {
+    color: var(--text-dim); font-size: 18px; padding: 8px 0;
+    display: flex; justify-content: center;
+  }
+  .flow-label {
+    font-size: 10px; color: var(--text-dim); text-align: center;
+    padding: 2px 6px; white-space: nowrap;
+  }
+
+  /* System layers */
+  .layer-diagram {
+    display: flex; flex-direction: column; gap: 0;
+    padding: 0; overflow-x: auto;
+  }
+  .layer {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; margin-bottom: -1px;
+    position: relative;
+  }
+  .layer-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-dim); margin-bottom: 10px; font-weight: 600;
+  }
+  .layer-items {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .layer-item {
+    font-size: 12px; padding: 6px 12px; border-radius: 6px;
+    font-family: var(--mono); border: 1px solid;
+  }
+  .layer-item.cmd { background: rgba(88,166,255,0.06); border-color: rgba(88,166,255,0.3); color: var(--accent); }
+  .layer-item.script { background: rgba(219,109,40,0.06); border-color: rgba(219,109,40,0.3); color: var(--orange); }
+  .layer-item.module { background: rgba(188,140,255,0.06); border-color: rgba(188,140,255,0.3); color: var(--purple); }
+  .layer-item.ext { background: rgba(63,185,80,0.06); border-color: rgba(63,185,80,0.3); color: var(--green); }
+  .layer-connector {
+    display: flex; justify-content: center; padding: 4px 0;
+    color: var(--text-dim); font-size: 14px;
+  }
+
+  /* Decision tree */
+  .decision-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 900px) { .decision-grid { grid-template-columns: 1fr; } }
+  .decision-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; transition: border-color 0.15s;
+  }
+  .decision-card:hover { border-color: var(--accent); }
+  .decision-card h4 {
+    font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text);
+  }
+  .decision-card .intent {
+    font-size: 12px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.4;
+  }
+  .decision-cmd {
+    font-family: var(--mono); font-size: 12px;
+    background: rgba(88,166,255,0.08); color: var(--accent);
+    padding: 4px 8px; border-radius: 4px; display: inline-block;
+  }
+  .decision-alt {
+    font-size: 11px; color: var(--text-dim); margin-top: 6px;
+  }
+  .decision-alt code {
+    font-family: var(--mono); font-size: 11px;
+    background: rgba(255,255,255,0.04); padding: 1px 4px; border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+
+<h1>GTM Hello World</h1>
+<p class="subtitle">Campaign tracker + project reference. State persisted in localStorage.</p>
+
+<!-- ═══ Top-level tabs ═══ -->
+<div class="tab-bar" id="tabBar">
+  <button class="active" data-tab="pipeline">Pipeline</button>
+  <button data-tab="architecture">Architecture</button>
+  <button data-tab="docs">Docs &amp; Reference</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!--  TAB 1 — PIPELINE                              -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="tab-pane active" id="tab-pipeline">
+
+  <div class="campaign-bar" id="campaignBar"></div>
+
+  <div class="detail-panel" id="detailPanel">
+    <h2 id="campaignTitle">Select a campaign</h2>
+    <div class="detail-grid" id="campaignDetail"></div>
+  </div>
+
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="label">Progress</div><div class="value green" id="statProgress">0/12</div></div>
+    <div class="stat-card"><div class="label">Current Step</div><div class="value" id="statCurrent">—</div></div>
+    <div class="stat-card"><div class="label">Blocked</div><div class="value red" id="statBlocked">0</div></div>
+    <div class="stat-card"><div class="label">Last Updated</div><div class="value" id="statUpdated">—</div></div>
+  </div>
+
+  <div class="pipeline" id="pipeline"></div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!--  TAB 2 — ARCHITECTURE                           -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-architecture">
+
+  <!-- ── Section 1: Data Flow ── -->
+  <div class="arch-section">
+    <h2>Data Flow — How Data Moves Between Systems</h2>
+
+    <div class="flow-diagram">
+
+      <!-- Row 1: Enrichment pipeline -->
+      <div class="flow-label" style="margin-bottom:4px; font-size:11px; font-weight:600; color:var(--green);">ENRICHMENT PIPELINE (upstream)</div>
+      <div class="flow-row">
+        <div class="flow-node external">
+          DH API
+          <div class="node-sub">HospitalView</div>
+        </div>
+        <div class="flow-arrow">
+          <span>&#10132;</span>
+        </div>
+        <div class="flow-node internal">
+          10 Recipes
+          <div class="node-sub">runner.py</div>
+        </div>
+        <div class="flow-arrow">
+          <span>&#10132;</span>
+        </div>
+        <div class="flow-node db">
+          enrichment.db
+          <div class="node-sub">814K+ records</div>
+        </div>
+        <div class="flow-arrow">
+          <span>&#10132;</span>
+        </div>
+        <div class="flow-node internal">
+          /dh-* Skills
+          <div class="node-sub">3 skills, 10 recipes</div>
+        </div>
+        <div class="flow-arrow">
+          <span>&#10132;</span>
+        </div>
+        <div class="flow-node operator">
+          Operator
+          <div class="node-sub">Reviews &amp; selects</div>
+        </div>
+      </div>
+
+      <div class="flow-arrow-down">&#9660;</div>
+
+      <!-- Row 2: Campaign operations -->
+      <div class="flow-label" style="margin-bottom:4px; font-size:11px; font-weight:600; color:var(--accent);">OUTBOUND OPERATIONS (core loop)</div>
+      <div class="flow-row">
+        <div class="flow-node operator">
+          Operator
+          <div class="node-sub">/instantly-* cmds</div>
+        </div>
+        <div class="flow-arrow">
+          <span>&#10132;</span>
+        </div>
+        <div class="flow-node internal">
+          9 Ops Scripts
+          <div class="node-sub">ops/*.py</div>
+        </div>
+        <div class="flow-arrow">
+          <span>&#10132;</span>
+        </div>
+        <div class="flow-node internal">
+          mcp.py
+          <div class="node-sub">38 MCP tools</div>
+        </div>
+        <div class="flow-arrow">
+          <span>&#10132;</span>
+        </div>
+        <div class="flow-node external">
+          Instantly
+          <div class="node-sub">Campaigns + Sending</div>
+        </div>
+        <div class="flow-arrow">
+          <span>&#10132;</span>
+        </div>
+        <div class="flow-node external" style="border-color:var(--red);color:var(--red);background:rgba(248,81,73,0.08);">
+          Prospect Inbox
+          <div class="node-sub">Emails delivered</div>
+        </div>
+      </div>
+
+      <div class="flow-arrow-down">&#9660; <span style="font-size:11px;margin-left:6px;">replies flow back</span></div>
+
+      <!-- Row 3: Reply processing + downstream -->
+      <div class="flow-label" style="margin-bottom:4px; font-size:11px; font-weight:600; color:var(--pink);">DOWNSTREAM (replies &rarr; CRM)</div>
+      <div class="flow-row">
+        <div class="flow-node external">
+          Instantly Unibox
+          <div class="node-sub">Reply threads</div>
+        </div>
+        <div class="flow-arrow">
+          <span>&#10132;</span>
+        </div>
+        <div class="flow-node internal">
+          process_replies
+          <div class="node-sub">Sentiment classifier</div>
+        </div>
+        <div class="flow-arrow">
+          <span>&#10132;</span>
+        </div>
+        <div class="flow-node db">
+          hello_world.db
+          <div class="node-sub">12 tables</div>
+        </div>
+        <div class="flow-arrow">
+          <span>&#10132;</span>
+        </div>
+        <div class="flow-node internal">
+          push_to_clay
+          <div class="node-sub">Positive replies only</div>
+        </div>
+        <div class="flow-arrow">
+          <span>&#10132;</span>
+        </div>
+        <div class="flow-node crm">
+          Clay &rarr; Salesforce
+          <div class="node-sub">Webhook &rarr; CRM</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px; padding-top:12px; border-top:1px solid var(--border);">
+        <div class="flow-row" style="justify-content:flex-start; gap:16px; min-width:auto; flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;">
+            <span style="width:12px;height:12px;border-radius:3px;background:rgba(88,166,255,0.15);border:1px solid var(--accent);display:inline-block;"></span>
+            <span style="color:var(--text-dim)">External API</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;">
+            <span style="width:12px;height:12px;border-radius:3px;background:rgba(188,140,255,0.15);border:1px solid var(--purple);display:inline-block;"></span>
+            <span style="color:var(--text-dim)">Local Code</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;">
+            <span style="width:12px;height:12px;border-radius:3px;background:rgba(63,185,80,0.15);border:1px solid var(--green);display:inline-block;"></span>
+            <span style="color:var(--text-dim)">Database</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;">
+            <span style="width:12px;height:12px;border-radius:3px;background:rgba(210,153,34,0.15);border:1px solid var(--yellow);display:inline-block;"></span>
+            <span style="color:var(--text-dim)">Operator</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;">
+            <span style="width:12px;height:12px;border-radius:3px;background:rgba(247,120,186,0.15);border:1px solid var(--pink);display:inline-block;"></span>
+            <span style="color:var(--text-dim)">CRM / Downstream</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 2: System Layers ── -->
+  <div class="arch-section">
+    <h2>System Architecture — Layers</h2>
+
+    <div class="layer-diagram">
+      <div class="layer" style="border-color:var(--yellow);">
+        <div class="layer-label" style="color:var(--yellow);">Layer 1 &mdash; Operator Interface (Claude Code)</div>
+        <div class="layer-items">
+          <div class="layer-item cmd">/instantly-launch</div>
+          <div class="layer-item cmd">/instantly-enroll</div>
+          <div class="layer-item cmd">/instantly-metrics</div>
+          <div class="layer-item cmd">/instantly-replies</div>
+          <div class="layer-item cmd">/instantly-campaigns</div>
+          <div class="layer-item cmd">/instantly-toggle</div>
+          <div class="layer-item cmd">/instantly-search</div>
+          <div class="layer-item cmd">/instantly-account</div>
+          <div class="layer-item cmd">/instantly-sync</div>
+          <div class="layer-item cmd">/instantly-dnc</div>
+          <div class="layer-item cmd">/instantly-mailbox-health</div>
+          <div class="layer-item cmd">/instantly-status</div>
+          <div class="layer-item cmd">/instantly-verify</div>
+          <div class="layer-item cmd">/instantly-clay-push</div>
+        </div>
+      </div>
+
+      <div class="layer-connector">&#9660;</div>
+
+      <div class="layer" style="border-color:var(--orange);">
+        <div class="layer-label" style="color:var(--orange);">Layer 2 &mdash; Operational Scripts</div>
+        <div class="layer-items">
+          <div class="layer-item script">launch_campaign.py</div>
+          <div class="layer-item script">enroll_contacts.py</div>
+          <div class="layer-item script">campaign_status.py</div>
+          <div class="layer-item script">toggle_campaign.py</div>
+          <div class="layer-item script">block_list.py</div>
+          <div class="layer-item script">mailbox_health.py</div>
+          <div class="layer-item script">search_contacts.py</div>
+          <div class="layer-item script">verify_emails.py</div>
+          <div class="layer-item script">account_view.py</div>
+        </div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;">
+          <div class="layer-item script">check_status.py</div>
+          <div class="layer-item script">pull_metrics.py</div>
+          <div class="layer-item script">process_replies.py</div>
+          <div class="layer-item script">push_to_clay.py</div>
+          <div class="layer-item script">sync_all.py</div>
+        </div>
+      </div>
+
+      <div class="layer-connector">&#9660;</div>
+
+      <div class="layer" style="border-color:var(--purple);">
+        <div class="layer-label" style="color:var(--purple);">Layer 3 &mdash; Core Modules</div>
+        <div class="layer-items">
+          <div class="layer-item module">mcp.py &mdash; 38 MCP tools (JSON-RPC 2.0 / SSE)</div>
+          <div class="layer-item module">api.py &mdash; REST fallback (block list only)</div>
+          <div class="layer-item module">db.py &mdash; SQLite connection + logging</div>
+          <div class="layer-item module">config.py &mdash; Paths, thresholds, env vars</div>
+        </div>
+      </div>
+
+      <div class="layer-connector">&#9660;</div>
+
+      <div class="layer" style="border-color:var(--green);">
+        <div class="layer-label" style="color:var(--green);">Layer 4 &mdash; Data + External Services</div>
+        <div class="layer-items">
+          <div class="layer-item ext">gtm_hello_world.db (12 tables)</div>
+          <div class="layer-item ext">enrichment.db (814K+ records)</div>
+          <div class="layer-item ext">Instantly MCP Server</div>
+          <div class="layer-item ext">Instantly REST API v2</div>
+          <div class="layer-item ext">Clay Webhook</div>
+          <div class="layer-item ext">DH HospitalView API</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 3: Operator Decision Map ── -->
+  <div class="arch-section">
+    <h2>Operator Quick Reference &mdash; What Do You Want to Do?</h2>
+
+    <div class="decision-grid">
+      <div class="decision-card">
+        <h4>Find contacts for a campaign</h4>
+        <div class="intent">Discover ICP-matched contacts from the enrichment database for a specific hospital, system, or segment.</div>
+        <div class="decision-cmd">/dh-contacts {id}</div>
+        <div class="decision-alt">Also: <code>/dh-accounts enterprise</code> for batch, <code>/dh-signals "{system}"</code> for triggers</div>
+      </div>
+
+      <div class="decision-card">
+        <h4>Launch a new campaign</h4>
+        <div class="intent">Create campaign in Instantly, set email sequences, assign mailboxes, enroll contacts, activate sending.</div>
+        <div class="decision-cmd">/instantly-launch</div>
+        <div class="decision-alt">Dry-run by default. Add <code>--live</code> for real API calls.</div>
+      </div>
+
+      <div class="decision-card">
+        <h4>Add more contacts to a running campaign</h4>
+        <div class="intent">Enroll new contacts into an existing active or paused campaign.</div>
+        <div class="decision-cmd">/instantly-enroll</div>
+        <div class="decision-alt">Deduplicates against existing enrollment. Batches of 1,000.</div>
+      </div>
+
+      <div class="decision-card">
+        <h4>Check how campaigns are performing</h4>
+        <div class="intent">Pull latest analytics from Instantly, check open/reply/bounce rates, run kill-switch checks.</div>
+        <div class="decision-cmd">/instantly-metrics</div>
+        <div class="decision-alt">Also: <code>/instantly-status</code> for full dashboard, <code>/instantly-campaigns</code> for list view</div>
+      </div>
+
+      <div class="decision-card">
+        <h4>Process replies and classify sentiment</h4>
+        <div class="intent">Pull new reply threads from Instantly, classify as positive/negative/neutral/OOO, triage next actions.</div>
+        <div class="decision-cmd">/instantly-replies</div>
+        <div class="decision-alt">Keywords override AI scores. Positive replies flagged for Clay push.</div>
+      </div>
+
+      <div class="decision-card">
+        <h4>Push positive replies to Salesforce</h4>
+        <div class="intent">Send qualified positive replies to Clay webhook, which creates leads in Salesforce.</div>
+        <div class="decision-cmd">/instantly-clay-push</div>
+        <div class="decision-alt">Only pushes unpushed positive replies. Logs to <code>clay_push_log</code>.</div>
+      </div>
+
+      <div class="decision-card">
+        <h4>Pause or resume a campaign</h4>
+        <div class="intent">Immediately stop or restart sending for a specific campaign.</div>
+        <div class="decision-cmd">/instantly-toggle</div>
+        <div class="decision-alt">Use when kill-switch triggers or when you need to edit sequences.</div>
+      </div>
+
+      <div class="decision-card">
+        <h4>Find a specific contact or account</h4>
+        <div class="intent">Search by email, name, account name, ICP title, or department across local DB and Instantly.</div>
+        <div class="decision-cmd">/instantly-search</div>
+        <div class="decision-alt">Auto-detects query type. Also: <code>/instantly-account "HCA"</code> for deep view.</div>
+      </div>
+
+      <div class="decision-card">
+        <h4>Check mailbox health and warmup</h4>
+        <div class="intent">Verify sending accounts are connected, warmed up, and not flagged.</div>
+        <div class="decision-cmd">/instantly-mailbox-health</div>
+        <div class="decision-alt">Shows warmup score, daily limit, connection status per account.</div>
+      </div>
+
+      <div class="decision-card">
+        <h4>Block a domain or email</h4>
+        <div class="intent">Add to block list (DNC). Prevents future sends to that email or entire domain.</div>
+        <div class="decision-cmd">/instantly-dnc</div>
+        <div class="decision-alt">Reversible — can list and remove entries. Local DB is source of truth.</div>
+      </div>
+
+      <div class="decision-card">
+        <h4>Verify emails before sending</h4>
+        <div class="intent">Check deliverability of email addresses before enrolling in a campaign.</div>
+        <div class="decision-cmd">/instantly-verify</div>
+        <div class="decision-alt">5-45 seconds per email. Batch mode available from DB.</div>
+      </div>
+
+      <div class="decision-card">
+        <h4>Sync everything from Instantly</h4>
+        <div class="intent">Pull latest campaigns, leads, emails, accounts, and metrics into local DB.</div>
+        <div class="decision-cmd">/instantly-sync</div>
+        <div class="decision-alt">5 sync jobs with cursor-based pagination. Idempotent — safe to re-run.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 4: Database Flow ── -->
+  <div class="arch-section">
+    <h2>Database Tables &mdash; What Gets Written Where</h2>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;overflow-x:auto;">
+      <table class="ref">
+        <tr><th>Table</th><th>Written By</th><th>Read By</th><th>Synced From</th></tr>
+        <tr>
+          <td><code>accounts</code></td>
+          <td>seed_db, sync_all</td>
+          <td>check_status, account_view, launch_campaign</td>
+          <td>Instantly (list_accounts)</td>
+        </tr>
+        <tr>
+          <td><code>contacts</code></td>
+          <td>seed_db, enroll_contacts</td>
+          <td>search_contacts, account_view, launch_campaign</td>
+          <td>Enrichment DB (manual)</td>
+        </tr>
+        <tr>
+          <td><code>campaigns</code></td>
+          <td>launch_campaign, sync_all</td>
+          <td>check_status, campaign_status, toggle, metrics</td>
+          <td>Instantly (list_campaigns)</td>
+        </tr>
+        <tr>
+          <td><code>campaign_contacts</code></td>
+          <td>enroll_contacts</td>
+          <td>check_status, account_view</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td><code>metric_snapshots</code></td>
+          <td>pull_metrics</td>
+          <td>check_status, kill-switch checks</td>
+          <td>Instantly (get_campaign_analytics)</td>
+        </tr>
+        <tr>
+          <td><code>email_threads</code></td>
+          <td>process_replies, sync_all</td>
+          <td>process_replies (scan), check_status</td>
+          <td>Instantly (list_emails)</td>
+        </tr>
+        <tr>
+          <td><code>reply_sentiment</code></td>
+          <td>process_replies (store_reply)</td>
+          <td>push_to_clay, check_status, account_view</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td><code>clay_push_log</code></td>
+          <td>push_to_clay (log_push)</td>
+          <td>check_status</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td><code>engagement_events</code></td>
+          <td>sync_all</td>
+          <td>check_status, account_view</td>
+          <td>Instantly (campaign analytics)</td>
+        </tr>
+        <tr>
+          <td><code>mailboxes</code></td>
+          <td>seed_db, sync_all</td>
+          <td>check_status, mailbox_health, launch_campaign</td>
+          <td>Instantly (list_accounts)</td>
+        </tr>
+        <tr>
+          <td><code>block_list</code></td>
+          <td>block_list.py (add_entry)</td>
+          <td>block_list.py (list_entries), check_status</td>
+          <td>Instantly REST (block-lists-entries)</td>
+        </tr>
+        <tr>
+          <td><code>api_log</code></td>
+          <td>mcp.py, api.py (every call)</td>
+          <td>check_status (report_api_activity)</td>
+          <td>&mdash;</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!--  TAB 3 — DOCS & REFERENCE                      -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-docs">
+
+  <div class="docs-nav" id="docsNav">
+    <button class="active" data-section="skills">Enrichment Skills</button>
+    <button data-section="commands">Instantly Commands</button>
+    <button data-section="databases">Databases</button>
+    <button data-section="apidocs">API Docs</button>
+    <button data-section="campaigns">Campaigns</button>
+    <button data-section="scripts">Scripts</button>
+    <button data-section="datafiles">Data Files</button>
+    <button data-section="config">Config</button>
+    <button data-section="roadmap">Roadmap</button>
+  </div>
+
+  <!-- ── SKILLS ──────────────────────────────── -->
+  <div class="docs-section active" id="sec-skills">
+
+    <!-- /dh-contacts -->
+    <div class="doc-card open">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>/dh-contacts — Contact Discovery</h3>
+        <div><span class="badge badge-skill">SKILL</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <p class="desc-text">Single-hospital or single-system contact discovery via Definitive Healthcare API. Covers <strong>Recipes 1, 2, 8, 10</strong>.</p>
+        <p class="fp">.claude/skills/dh-contacts/SKILL.md</p>
+
+        <table class="ref">
+          <tr><th>Usage</th><th>Recipe</th><th>What it does</th></tr>
+          <tr><td><code>/dh-contacts 2151</code></td><td>R1</td><td>Full extraction at Def ID 2151 — all execs, physicians, RFPs, news</td></tr>
+          <tr><td><code>/dh-contacts icp 2151</code></td><td>R2</td><td>ICP-matched contacts only (66-title taxonomy) at Def ID 2151</td></tr>
+          <tr><td><code>/dh-contacts physicians 2151</code></td><td>R8</td><td>Endocrinologists, hospitalists, medical directors at Def ID 2151</td></tr>
+          <tr><td><code>/dh-contacts "Tenet Healthcare"</code></td><td>R10</td><td>Every contact across all facilities under Tenet Healthcare</td></tr>
+        </table>
+
+        <p class="desc-text"><strong>Under the hood:</strong> Parses argument → runs <code>enrichment/runner.py --recipe N</code> → stores in enrichment.db → queries summary.</p>
+
+        <div class="sample"><span class="comment"># What the skill runs internally:</span>
+source .venv/bin/activate
+
+<span class="comment"># R1: Full extraction</span>
+python enrichment/experiments/runner.py --recipe 1 --def-id 2151 --live
+
+<span class="comment"># R2: ICP-matched</span>
+python enrichment/experiments/runner.py --recipe 2 --def-id 2151 --live
+
+<span class="comment"># R8: Physician champions</span>
+python enrichment/experiments/runner.py --recipe 8 --def-id 2151 --live
+
+<span class="comment"># R10: Every contact in a parent system</span>
+python enrichment/experiments/runner.py --recipe 10 --parent "Tenet Healthcare" --live</div>
+
+        <p class="desc-text"><strong>Post-run query</strong> (auto-run by skill):</p>
+        <div class="sample"><span class="comment">-- Summary of the latest run</span>
+SELECT COUNT(*) <span class="keyword">AS</span> total_execs
+  <span class="keyword">FROM</span> executives
+  <span class="keyword">WHERE</span> run_id = (<span class="keyword">SELECT</span> MAX(id) <span class="keyword">FROM</span> runs);
+
+SELECT COUNT(*) <span class="keyword">AS</span> icp_matched
+  <span class="keyword">FROM</span> executives
+  <span class="keyword">WHERE</span> run_id = (<span class="keyword">SELECT</span> MAX(id) <span class="keyword">FROM</span> runs) <span class="keyword">AND</span> icp_matched = 1;
+
+SELECT position_level, COUNT(*)
+  <span class="keyword">FROM</span> executives
+  <span class="keyword">WHERE</span> run_id = (<span class="keyword">SELECT</span> MAX(id) <span class="keyword">FROM</span> runs)
+  <span class="keyword">GROUP BY</span> position_level;</div>
+
+        <p class="desc-text"><strong>Key files:</strong></p>
+        <table class="ref">
+          <tr><th>File</th><th>Path</th></tr>
+          <tr><td>Skill definition</td><td class="fp">.claude/skills/dh-contacts/SKILL.md</td></tr>
+          <tr><td>R1 script</td><td class="fp">enrichment/experiments/recipes/recipe01_full_extract.py</td></tr>
+          <tr><td>R2 script</td><td class="fp">enrichment/experiments/recipes/recipe02_icp_match.py</td></tr>
+          <tr><td>R8 script</td><td class="fp">enrichment/experiments/recipes/recipe08_physician_champion.py</td></tr>
+          <tr><td>R10 script</td><td class="fp">enrichment/experiments/recipes/recipe10_every_contact.py</td></tr>
+          <tr><td>Runner</td><td class="fp">enrichment/experiments/runner.py</td></tr>
+          <tr><td>DH API client</td><td class="fp">enrichment/experiments/dh_client.py</td></tr>
+          <tr><td>ICP matcher</td><td class="fp">enrichment/experiments/icp_matcher.py</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- /dh-accounts -->
+    <div class="doc-card">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>/dh-accounts — Batch Account Discovery</h3>
+        <div><span class="badge badge-skill">SKILL</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <p class="desc-text">Batch contact discovery across many facilities by segment, EHR, or financial distress. <strong>Recipes 4, 5, 6</strong>. These are long-running operations.</p>
+        <p class="fp">.claude/skills/dh-accounts/SKILL.md</p>
+
+        <table class="ref">
+          <tr><th>Usage</th><th>Recipe</th><th>What it does</th></tr>
+          <tr><td><code>/dh-accounts enterprise</code></td><td>R4</td><td>Tiered ICP discovery — ~242 Enterprise systems, ~3,600 facilities</td></tr>
+          <tr><td><code>/dh-accounts ehr enterprise</code></td><td>R5</td><td>EHR-segmented discovery — groups by Epic/Cerner/MEDITECH</td></tr>
+          <tr><td><code>/dh-accounts distress enterprise</code></td><td>R6</td><td>Negative-margin hospitals with CMS penalty targeting</td></tr>
+          <tr><td><code>/dh-accounts commercial</code></td><td>R4</td><td>Tiered discovery for Commercial segment</td></tr>
+        </table>
+
+        <div class="sample"><span class="comment"># Internal commands:</span>
+python enrichment/experiments/runner.py --recipe 4 --scope enterprise --live
+python enrichment/experiments/runner.py --recipe 5 --scope enterprise --live
+python enrichment/experiments/runner.py --recipe 6 --scope enterprise --live
+
+<span class="comment"># Check progress mid-run:</span>
+sqlite3 enrichment/data/enrichment.db <span class="string">"
+  SELECT recipe, status, facilities_completed, facilities_targeted, contacts_found
+  FROM runs WHERE id = (SELECT MAX(id) FROM runs);"</span>
+
+<span class="comment"># Resume interrupted run:</span>
+python enrichment/experiments/runner.py --resume --run-id 23</div>
+
+        <p class="desc-text"><strong>Execution data:</strong> R4 has been run (156,080 execs, 17,557 ICP-matched, 10.5h). R5 and R7 have NOT been run yet.</p>
+
+        <table class="ref">
+          <tr><th>File</th><th>Path</th></tr>
+          <tr><td>Skill definition</td><td class="fp">.claude/skills/dh-accounts/SKILL.md</td></tr>
+          <tr><td>R4 script</td><td class="fp">enrichment/experiments/recipes/recipe04_tiered_discovery.py</td></tr>
+          <tr><td>R5 script</td><td class="fp">enrichment/experiments/recipes/recipe05_ehr_segmented.py</td></tr>
+          <tr><td>R6 script</td><td class="fp">enrichment/experiments/recipes/recipe06_financial_distress.py</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- /dh-signals -->
+    <div class="doc-card">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>/dh-signals — Trigger Signals &amp; Account Enrichment</h3>
+        <div><span class="badge badge-skill">SKILL</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <p class="desc-text">Leadership changes, M&amp;A, EHR migrations, financial signals. Also comprehensive account enrichment. <strong>Recipes 3, 7, 9</strong>.</p>
+        <p class="fp">.claude/skills/dh-signals/SKILL.md</p>
+
+        <table class="ref">
+          <tr><th>Usage</th><th>Recipe</th><th>What it does</th></tr>
+          <tr><td><code>/dh-signals "CommonSpirit Health"</code></td><td>R3</td><td>Network map + leadership changes across the system</td></tr>
+          <tr><td><code>/dh-signals rep Khirstyn</code></td><td>R7</td><td>Territory contacts filtered by rep assignment</td></tr>
+          <tr><td><code>/dh-signals enrich 2151</code></td><td>R9</td><td>Quality, financials, GPO, news for one hospital</td></tr>
+          <tr><td><code>/dh-signals enrich enterprise</code></td><td>R9</td><td>Account enrichment bundle — all Enterprise facilities</td></tr>
+        </table>
+
+        <div class="sample"><span class="comment"># Internal commands:</span>
+python enrichment/experiments/runner.py --recipe 3 --parent "CommonSpirit Health" --live
+python enrichment/experiments/runner.py --recipe 7 --rep "Khirstyn" --live
+python enrichment/experiments/runner.py --recipe 9 --def-id 2151 --live
+python enrichment/experiments/runner.py --recipe 9 --scope enterprise --live
+
+<span class="comment"># Query trigger signals:</span>
+sqlite3 enrichment/data/enrichment.db <span class="string">"
+  SELECT signal_type, COUNT(*) FROM trigger_signals
+  WHERE run_id = (SELECT MAX(id) FROM runs) GROUP BY signal_type;"</span>
+
+<span class="comment"># Query account enrichment:</span>
+sqlite3 enrichment/data/enrichment.db <span class="string">"
+  SELECT data_type, COUNT(*) FROM account_enrichment
+  WHERE run_id = (SELECT MAX(id) FROM runs) GROUP BY data_type;"</span></div>
+
+        <p class="desc-text"><strong>Execution data:</strong> R3 done (301,510 signals, 5.9h). R9 done (105,131 records, 6.1h). R7 NOT yet run.</p>
+
+        <table class="ref">
+          <tr><th>File</th><th>Path</th></tr>
+          <tr><td>Skill definition</td><td class="fp">.claude/skills/dh-signals/SKILL.md</td></tr>
+          <tr><td>R3 script</td><td class="fp">enrichment/experiments/recipes/recipe03_network_map.py</td></tr>
+          <tr><td>R7 script</td><td class="fp">enrichment/experiments/recipes/recipe07_geo_territory.py</td></tr>
+          <tr><td>R9 script</td><td class="fp">enrichment/experiments/recipes/recipe09_account_bundle.py</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recipe execution status -->
+    <div class="doc-card">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Recipe Execution Status</h3>
+        <div><span class="badge badge-skill">STATUS</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <table class="ref">
+          <tr><th>#</th><th>Recipe</th><th>Skill</th><th>Status</th><th>Records</th></tr>
+          <tr><td>R1</td><td>Full Contact Extraction</td><td><code>/dh-contacts {id}</code></td><td style="color:var(--yellow)">On-demand</td><td>—</td></tr>
+          <tr><td>R2</td><td>ICP-Matched Discovery</td><td><code>/dh-contacts icp {id}</code></td><td style="color:var(--yellow)">On-demand</td><td>—</td></tr>
+          <tr><td>R3</td><td>Leadership Changes</td><td><code>/dh-signals "{sys}"</code></td><td style="color:var(--green)">Done (5.9h)</td><td>301,510 signals</td></tr>
+          <tr><td>R4</td><td>Tiered Discovery</td><td><code>/dh-accounts enterprise</code></td><td style="color:var(--green)">Done (10.5h)</td><td>156,080 execs, 17,557 ICP</td></tr>
+          <tr><td>R5</td><td>EHR-Segmented</td><td><code>/dh-accounts ehr</code></td><td style="color:var(--red)">Not run</td><td>—</td></tr>
+          <tr><td>R6</td><td>Financial Distress</td><td><code>/dh-accounts distress</code></td><td style="color:var(--green)">Done (5.9h)</td><td>2,993 contacts + 1,819 penalties</td></tr>
+          <tr><td>R7</td><td>Geographic / Territory</td><td><code>/dh-signals rep</code></td><td style="color:var(--red)">Not run</td><td>—</td></tr>
+          <tr><td>R8</td><td>Physician Champions</td><td><code>/dh-contacts physicians</code></td><td style="color:var(--green)">Done (7.3h)</td><td>252,016 physicians</td></tr>
+          <tr><td>R9</td><td>Account Bundle</td><td><code>/dh-signals enrich</code></td><td style="color:var(--green)">Done (6.1h)</td><td>105,131 records</td></tr>
+          <tr><td>R10</td><td>Every Contact at Company</td><td><code>/dh-contacts "{sys}"</code></td><td style="color:var(--yellow)">On-demand</td><td>—</td></tr>
+        </table>
+        <p class="desc-text">Run <code>python enrichment/experiments/runner.py --status</code> for live status from the DB.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── COMMANDS ────────────────────────────── -->
+  <div class="docs-section" id="sec-commands">
+
+    <div class="doc-card open">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Instantly Commands Overview</h3>
+        <div><span class="badge badge-cmd">COMMANDS</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <p class="desc-text">14 commands in <span class="fp">.claude/commands/</span> wrapping scripts in <span class="fp">gtm-hello-world/ops/</span> and <span class="fp">gtm-hello-world/sync/</span>. All DRY-RUN by default — pass <code>--live</code> for real API calls.</p>
+
+        <table class="ref">
+          <tr><th>Command</th><th>What it does</th><th>Backing script</th></tr>
+          <tr><td><code>/instantly-launch</code></td><td>Full campaign lifecycle: create → compose → assign mailboxes → enroll</td><td class="fp">ops/launch_campaign.py</td></tr>
+          <tr><td><code>/instantly-enroll</code></td><td>Add contacts to an existing campaign with ICP filtering</td><td class="fp">ops/enroll_contacts.py</td></tr>
+          <tr><td><code>/instantly-campaigns</code></td><td>List all campaigns with inline stats (sent, opened, replied, bounced)</td><td class="fp">ops/campaign_status.py</td></tr>
+          <tr><td><code>/instantly-toggle</code></td><td>Pause or activate a campaign</td><td class="fp">ops/toggle_campaign.py</td></tr>
+          <tr><td><code>/instantly-metrics</code></td><td>Pull metrics + dashboard + kill-switch check</td><td class="fp">pull_metrics.py</td></tr>
+          <tr><td><code>/instantly-replies</code></td><td>Pull reply threads, classify sentiment, triage</td><td class="fp">process_replies.py</td></tr>
+          <tr><td><code>/instantly-search</code></td><td>Search contacts — auto-detects email, name, account, ICP, title</td><td class="fp">ops/search_contacts.py</td></tr>
+          <tr><td><code>/instantly-account</code></td><td>Account details + contacts + engagement</td><td class="fp">ops/account_view.py</td></tr>
+          <tr><td><code>/instantly-sync</code></td><td>Full sync from Instantly API</td><td class="fp">sync/sync_all.py</td></tr>
+          <tr><td><code>/instantly-dnc</code></td><td>Block list — add, list, or remove entries (reversible)</td><td class="fp">ops/block_list.py</td></tr>
+          <tr><td><code>/instantly-mailbox-health</code></td><td>Check mailbox connectivity, warmup status, alert on problems</td><td class="fp">ops/mailbox_health.py</td></tr>
+          <tr><td><code>/instantly-status</code></td><td>Full operational dashboard — accounts, campaigns, metrics, replies</td><td class="fp">check_status.py</td></tr>
+          <tr><td><code>/instantly-verify</code></td><td>Verify emails before enrollment — checks deliverability</td><td class="fp">ops/verify_emails.py</td></tr>
+          <tr><td><code>/instantly-clay-push</code></td><td>Push positive replies to Clay webhook for Salesforce integration</td><td class="fp">push_to_clay.py</td></tr>
+        </table>
+
+        <div class="sample"><span class="comment"># Examples:</span>
+/instantly-launch "Q1 CNO Epic Priority" --tier Active --ehr Epic --persona "Decision Maker"
+/instantly-metrics "Q1 Campaign" 30d
+/instantly-search jane.doe@hospital.org
+/instantly-search --account "HCA Healthcare"
+/instantly-replies all
+/instantly-toggle pause "GHW_New_In_Role_Q1"
+/instantly-enroll "GHW_New_In_Role_Q1" --tier Active --ehr Epic --live
+/instantly-verify jane.doe@hospital.org
+/instantly-dnc add bounced@hospital.org --reason "hard bounce"</div>
+      </div>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Instantly Operations Scripts</h3>
+        <div><span class="badge badge-script">SCRIPTS</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <p class="desc-text">9 operational scripts in <span class="fp">gtm-hello-world/ops/</span> + 1 sync script:</p>
+        <table class="ref">
+          <tr><th>Script</th><th>Purpose</th></tr>
+          <tr><td class="fp">ops/launch_campaign.py</td><td>Full lifecycle: create campaign → compose → assign mailboxes → enroll</td></tr>
+          <tr><td class="fp">ops/toggle_campaign.py</td><td>Pause/activate campaigns</td></tr>
+          <tr><td class="fp">ops/enroll_contacts.py</td><td>Bulk contact enrollment with ICP filtering</td></tr>
+          <tr><td class="fp">ops/block_list.py</td><td>Block list management (add, list, remove)</td></tr>
+          <tr><td class="fp">ops/search_contacts.py</td><td>Multi-mode contact search (local DB + Instantly)</td></tr>
+          <tr><td class="fp">ops/account_view.py</td><td>Account details + contacts + engagement</td></tr>
+          <tr><td class="fp">ops/campaign_status.py</td><td>Campaign listing with inline stats</td></tr>
+          <tr><td class="fp">ops/mailbox_health.py</td><td>Mailbox connectivity and warmup monitoring</td></tr>
+          <tr><td class="fp">ops/verify_emails.py</td><td>Email deliverability verification</td></tr>
+          <tr><td class="fp">sync/sync_all.py</td><td>Full entity sync from Instantly API</td></tr>
+        </table>
+        <p class="desc-text"><strong>Core modules</strong> backing these scripts:</p>
+        <table class="ref">
+          <tr><th>Module</th><th>Path</th><th>What it does</th></tr>
+          <tr><td>MCP client</td><td class="fp">gtm-hello-world/mcp.py</td><td>Instantly MCP wrapper (38 tools, SSE transport)</td></tr>
+          <tr><td>API client</td><td class="fp">gtm-hello-world/api.py</td><td>REST API fallback for block list (5 endpoints)</td></tr>
+          <tr><td>Database</td><td class="fp">gtm-hello-world/db.py</td><td>12-table operational schema</td></tr>
+          <tr><td>Config</td><td class="fp">gtm-hello-world/config.py</td><td>Paths, env vars, thresholds, API setup</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DATABASES ───────────────────────────── -->
+  <div class="docs-section" id="sec-databases">
+
+    <div class="doc-card open">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Enrichment DB — enrichment.db (814K+ records)</h3>
+        <div><span class="badge badge-db">DATABASE</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <p class="fp">enrichment/data/enrichment.db</p>
+        <p class="desc-text">Produced by the DH enrichment pipeline. <strong>Read-only from the campaign system</strong> — only written by <code>enrichment/runner.py</code>.</p>
+
+        <table class="ref">
+          <tr><th>Table</th><th>Records</th><th>Contents</th></tr>
+          <tr><td><code>executives</code></td><td>156,080</td><td>Hospital execs — name, title, email, phone, LinkedIn, ICP match, position level</td></tr>
+          <tr><td><code>physicians</code></td><td>252,016</td><td>Physicians — NPI, specialty, Medicare data, practice phone, affiliations</td></tr>
+          <tr><td><code>trigger_signals</code></td><td>301,510</td><td>Leadership changes, EHR migrations, M&amp;A, affiliation changes, new facilities</td></tr>
+          <tr><td><code>account_enrichment</code></td><td>105,131</td><td>Quality penalties (HAC, readmission, VBP), financials, GPO/IDN memberships</td></tr>
+          <tr><td><code>api_calls</code></td><td>38,175</td><td>Full API call log with response times, retries, pagination</td></tr>
+          <tr><td><code>runs</code></td><td>23</td><td>Recipe execution tracking (status, duration, facility counts)</td></tr>
+        </table>
+
+        <p class="desc-text"><strong>Common queries:</strong></p>
+        <div class="sample"><span class="comment">-- ICP-matched executives with email</span>
+<span class="keyword">SELECT</span> first_name, last_name, primary_email, title, hospital_name
+<span class="keyword">FROM</span> executives
+<span class="keyword">WHERE</span> icp_matched = 1 <span class="keyword">AND</span> primary_email <span class="keyword">IS NOT NULL</span>
+<span class="keyword">ORDER BY</span> icp_intent_score <span class="keyword">DESC</span> <span class="keyword">LIMIT</span> 50;
+
+<span class="comment">-- Recent leadership changes (R3 signals)</span>
+<span class="keyword">SELECT</span> e.first_name, e.last_name, e.title, ts.signal_type, ts.detected_date
+<span class="keyword">FROM</span> executives e
+<span class="keyword">JOIN</span> trigger_signals ts <span class="keyword">ON</span> e.definitive_id = ts.definitive_id
+<span class="keyword">WHERE</span> ts.signal_type <span class="keyword">IN</span> (<span class="string">'new_hire'</span>, <span class="string">'title_change'</span>)
+  <span class="keyword">AND</span> ts.detected_date >= date(<span class="string">'now'</span>, <span class="string">'-6 months'</span>)
+<span class="keyword">ORDER BY</span> ts.detected_date <span class="keyword">DESC</span>;
+
+<span class="comment">-- Negative-margin hospitals (R6 data)</span>
+<span class="keyword">SELECT</span> facility_name, metric_name, metric_value
+<span class="keyword">FROM</span> account_enrichment
+<span class="keyword">WHERE</span> data_type = <span class="string">'financial'</span>
+  <span class="keyword">AND</span> metric_name = <span class="string">'operating_margin'</span>
+  <span class="keyword">AND</span> CAST(metric_value <span class="keyword">AS</span> REAL) < 0
+<span class="keyword">ORDER BY</span> CAST(metric_value <span class="keyword">AS</span> REAL) <span class="keyword">ASC</span>;
+
+<span class="comment">-- ICP title distribution</span>
+<span class="keyword">SELECT</span> icp_title, COUNT(*) <span class="keyword">AS</span> cnt
+<span class="keyword">FROM</span> executives <span class="keyword">WHERE</span> icp_matched = 1
+<span class="keyword">GROUP BY</span> icp_title <span class="keyword">ORDER BY</span> cnt <span class="keyword">DESC</span>;</div>
+      </div>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Hello World DB — gtm_hello_world.db (12 tables)</h3>
+        <div><span class="badge badge-db">DATABASE</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <p class="fp">gtm-hello-world/data/gtm_hello_world.db</p>
+        <p class="desc-text">Purposeful subset of the production schema. Created by <code>seed_db.py</code>. 10 accounts, 10 contacts, 3 mailboxes.</p>
+
+        <table class="ref">
+          <tr><th>Table</th><th>Seed rows</th><th>Purpose</th></tr>
+          <tr><td><code>accounts</code></td><td>10</td><td>Parent health systems (name, segment, beds, EHR, score, tier, opp $)</td></tr>
+          <tr><td><code>contacts</code></td><td>10</td><td>ICP contacts (name, email, title, account, ICP fields)</td></tr>
+          <tr><td><code>campaigns</code></td><td>0</td><td>Campaign tracking with Instantly ID, recipe, status, settings</td></tr>
+          <tr><td><code>campaign_contacts</code></td><td>0</td><td>Enrollment junction with engagement summary</td></tr>
+          <tr><td><code>metric_snapshots</code></td><td>0</td><td>Daily campaign performance (sent, opened, replied, bounced, rates)</td></tr>
+          <tr><td><code>reply_sentiment</code></td><td>0</td><td>Classified replies with downstream push tracking</td></tr>
+          <tr><td><code>clay_push_log</code></td><td>0</td><td>Webhook audit trail with Salesforce sync status</td></tr>
+          <tr><td><code>email_threads</code></td><td>0</td><td>Reply content mirror from Instantly Unibox</td></tr>
+          <tr><td><code>engagement_events</code></td><td>0</td><td>Individual events (sent, opened, clicked, replied, bounced)</td></tr>
+          <tr><td><code>mailboxes</code></td><td>3</td><td>Sender accounts with warmup status</td></tr>
+          <tr><td><code>block_list</code></td><td>0</td><td>DNC / block list entries (email, domain, reason)</td></tr>
+          <tr><td><code>api_log</code></td><td>0</td><td>Every MCP/API call logged</td></tr>
+        </table>
+
+        <div class="sample"><span class="comment"># Create / reset the database:</span>
+cd gtm-hello-world && python seed_db.py
+
+<span class="comment"># Open interactively:</span>
+sqlite3 data/gtm_hello_world.db
+
+<span class="comment"># Quick check:</span>
+python check_status.py</div>
+      </div>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Pipeline DB (Legacy)</h3>
+        <div><span class="badge badge-db">DATABASE</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <table class="ref">
+          <tr><th>Database</th><th>Path</th><th>Tables</th><th>Purpose</th></tr>
+          <tr><td>Pipeline (legacy)</td><td class="fp">pipeline/glytec_v1.db</td><td>6</td><td>Legacy pipeline: accounts, facilities, contacts, sequences, messages, api_log. 1,683 accounts, 8,458 facilities.</td></tr>
+        </table>
+        <p class="desc-text">Schema defined in <span class="fp">pipeline/experiments/db.py</span>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── API DOCS ────────────────────────────── -->
+  <div class="docs-section" id="sec-apidocs">
+
+    <div class="doc-card open">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Instantly API &amp; MCP (primary outbound platform)</h3>
+        <div><span class="badge badge-doc">API DOCS</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <table class="ref">
+          <tr><th>Document</th><th>Path</th><th>What's in it</th></tr>
+          <tr><td>GTM Operations Design</td><td class="fp">docs/instantly/gtm-operations-design-instantly.md</td><td>Complete system design: 38 MCP tools, ~131 API-only endpoints, SQLite schema (20+ tables), sync strategy, workflows, gap analysis. <strong>The master doc.</strong></td></tr>
+          <tr><td>API Reference</td><td class="fp">docs/instantly/instantly-api.md</td><td>Full endpoint reference for all ~169 API v2 endpoints with field schemas, request/response examples</td></tr>
+          <tr><td>Quick Summary</td><td class="fp">docs/instantly/gtm-instantly-summary.md</td><td>Condensed overview and best practices</td></tr>
+          <tr><td>OpenAPI Spec</td><td class="fp">docs/instantly/api_v2.json</td><td>Full Swagger/OpenAPI spec (41K lines, 1.5MB). Source of truth for all endpoints.</td></tr>
+        </table>
+        <p class="desc-text"><strong>Key numbers:</strong> 38 MCP tools (~22% of endpoints, ~85% of daily ops). ~131 API-only. MCP at <code>https://mcp.instantly.ai/mcp/{API_KEY}</code>. REST at <code>https://api.instantly.ai/api/v2</code>.</p>
+      </div>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Definitive Healthcare API</h3>
+        <div><span class="badge badge-doc">API DOCS</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <table class="ref">
+          <tr><th>Document</th><th>Path</th><th>What's in it</th></tr>
+          <tr><td>HospitalView API</td><td class="fp">docs/definitive-hc/hospitalview-api.md</td><td>Hospital data + executive search API (4,324 lines). The main DH reference.</td></tr>
+          <tr><td>Contact Enrichment Ref</td><td class="fp">docs/definitive-hc/contact-enrichment-reference.md</td><td>Contact discovery, filters, field mappings (1,758 lines)</td></tr>
+          <tr><td>API Test Results</td><td class="fp">docs/definitive-hc/api-test-results.md</td><td>Tested endpoints and data quality findings</td></tr>
+          <tr><td>API Capabilities</td><td class="fp">docs/definitive-hc/api-capabilities.md</td><td>DH data model and available fields</td></tr>
+          <tr><td>API Access</td><td class="fp">docs/definitive-hc/api-access.md</td><td>Authentication and setup</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Other Docs</h3>
+        <div><span class="badge badge-doc">DOCS</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <table class="ref">
+          <tr><th>Document</th><th>Path</th><th>What's in it</th></tr>
+          <tr><td>HeyReach API</td><td class="fp">docs/heyreach/heyreach-api.md</td><td>HeyReach prospect enrichment API</td></tr>
+          <tr><td>Instantly vs EmailBison</td><td class="fp">docs/research/instantly-vs-emailbison.md</td><td>Platform comparison analysis</td></tr>
+          <tr><td>Deep Research Report</td><td class="fp">docs/research/deep-research-report.md</td><td>Market/prospect research findings</td></tr>
+          <tr><td>Data Insights</td><td class="fp">docs/research/data-insights.md</td><td>Data quality and prospect insights</td></tr>
+          <tr><td>Pipeline Prompt</td><td class="fp">docs/pipeline/one-shot-pipeline-prompt.md</td><td>Unified pipeline execution prompt</td></tr>
+          <tr><td>System Architecture</td><td class="fp">docs/architecture/system-overview.html</td><td>Architecture diagram (HTML)</td></tr>
+          <tr><td>Data Flow</td><td class="fp">docs/architecture/data-flow.html</td><td>Data flow diagram (HTML)</td></tr>
+          <tr><td>Enrichment Pipeline Report</td><td class="fp">docs/pipeline/enrichment-pipeline-report.html</td><td>Visual enrichment execution report (HTML)</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CAMPAIGNS ───────────────────────────── -->
+  <div class="docs-section" id="sec-campaigns">
+
+    <div class="doc-card open">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Campaign Files</h3>
+        <div><span class="badge badge-data">CAMPAIGNS</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <p class="desc-text">9 campaign markdown files in <span class="fp">gtm-hello-world/campaigns/</span>. Each contains: target criteria SQL, 3-step email sequence with A/B on step 1, settings, custom variables, and sender strategy.</p>
+
+        <table class="ref">
+          <tr><th>File</th><th>Recipe</th><th>Skill</th><th>Name</th><th>Angle</th><th>Persona</th></tr>
+          <tr><td class="fp">01-new-in-role.md</td><td>R3</td><td><code>/dh-signals</code></td><td>GHW_New_In_Role_Q1</td><td>Congrats + tech reassessment window</td><td>CNO, CFO, CMO, CEO</td></tr>
+          <tr><td class="fp">02-priority-account.md</td><td>R4</td><td><code>/dh-accounts</code></td><td>GHW_Priority_Account_Q1</td><td>System-level financial impact</td><td>CFO, CNO, CMO</td></tr>
+          <tr><td class="fp">03-ehr-epic.md</td><td>R5</td><td><code>/dh-accounts ehr</code></td><td>GHW_Epic_Liability_Q1</td><td>DIY calculator = FDA risk</td><td>CNO, CMIO, Pharmacy</td></tr>
+          <tr><td class="fp">04-ehr-cerner.md</td><td>R5</td><td><code>/dh-accounts ehr</code></td><td>GHW_Cerner_Transition_Q1</td><td>Oracle migration disruption</td><td>CFO, COO, CMIO</td></tr>
+          <tr><td class="fp">05-ehr-meditech.md</td><td>R5</td><td><code>/dh-accounts ehr</code></td><td>GHW_MEDITECH_Modern_Q1</td><td>Skip DIY, leapfrog to FDA-cleared</td><td>CNO, CQO, Pharmacy</td></tr>
+          <tr><td class="fp">06-financial-recovery.md</td><td>R6</td><td><code>/dh-accounts distress</code></td><td>GHW_Financial_Recovery_Q1</td><td>CMS penalties + negative margins</td><td>CFO, CEO, COO</td></tr>
+          <tr><td class="fp">07-territory-outreach.md</td><td>R7</td><td><code>/dh-signals rep</code></td><td>GHW_Territory_Q1</td><td>Rep-introduced, personal</td><td>CNO, CFO, CMO</td></tr>
+          <tr><td class="fp">08-physician-champion.md</td><td>R8</td><td><code>/dh-contacts physicians</code></td><td>GHW_Physician_Champion_Q1</td><td>Clinical evidence, peer influence</td><td>Endocrinologists, Med dirs</td></tr>
+          <tr><td class="fp">09-account-deep-dive.md</td><td>R1/R2/R9/R10</td><td>Multiple</td><td>GHW_DeepDive_{account}</td><td>Full intelligence bundle</td><td>All ICP at one system</td></tr>
+        </table>
+
+        <p class="desc-text"><strong>Recommended first campaign:</strong> <span class="fp">01-new-in-role.md</span> (R3) — enrichment data already loaded (301K+ signals).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCRIPTS ─────────────────────────────── -->
+  <div class="docs-section" id="sec-scripts">
+
+    <div class="doc-card open">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Hello World Scripts</h3>
+        <div><span class="badge badge-script">SCRIPTS</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <p class="desc-text">5 scripts + config in <span class="fp">gtm-hello-world/</span>. All default to DRY-RUN. Use <code>--live</code> for real API calls.</p>
+
+        <table class="ref">
+          <tr><th>Script</th><th>What it does</th><th>Key functions</th></tr>
+          <tr><td><code>seed_db.py</code></td><td>Creates 12-table schema + inserts seed data</td><td>get_schema(), init_db(), seed_accounts(), seed_contacts(), seed_mailboxes()</td></tr>
+          <tr><td><code>check_status.py</code></td><td>Prints formatted dashboard from DB</td><td>report_accounts(), report_contacts(), report_campaigns(), report_metrics(), report_replies(), report_engagement(), report_api_activity()</td></tr>
+          <tr><td><code>pull_metrics.py</code></td><td>Pulls campaign analytics → metric_snapshots</td><td>log_api_call(), pull_campaign_analytics(), pull_daily_analytics(), check_kill_switches()</td></tr>
+          <tr><td><code>process_replies.py</code></td><td>Reply scanning + sentiment classification</td><td>scan_for_new_replies(), classify_sentiment(), store_reply(), triage_reply()</td></tr>
+          <tr><td><code>push_to_clay.py</code></td><td>Positive reply → Clay webhook</td><td>get_unpushed_positive_replies(), build_clay_payload(), push_to_clay(), log_push()</td></tr>
+          <tr><td><code>config.py</code></td><td>Paths, env vars, constants, thresholds</td><td>DB_PATH, ENRICHMENT_DB_PATH, CAMPAIGNS_DIR, DRY_RUN, kill-switch thresholds</td></tr>
+        </table>
+
+        <div class="sample"><span class="comment"># Standard workflow:</span>
+cd gtm-hello-world
+
+python seed_db.py                     <span class="comment"># Create + seed DB</span>
+python check_status.py                <span class="comment"># Dashboard</span>
+python pull_metrics.py                <span class="comment"># Dry run — placeholder zeros</span>
+python pull_metrics.py --live         <span class="comment"># Live — calls Instantly API</span>
+python process_replies.py --live      <span class="comment"># Classify new replies</span>
+python push_to_clay.py --live         <span class="comment"># Push positives to Clay webhook</span></div>
+      </div>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Enrichment Runner &amp; Core Modules</h3>
+        <div><span class="badge badge-script">SCRIPTS</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <table class="ref">
+          <tr><th>Module</th><th>Path</th><th>What it does</th></tr>
+          <tr><td>Runner (CLI)</td><td class="fp">enrichment/experiments/runner.py</td><td>CLI orchestrator: <code>--recipe N --scope S --def-id D --parent P --live --resume</code></td></tr>
+          <tr><td>DH Client</td><td class="fp">enrichment/experiments/dh_client.py</td><td>DH API wrapper: search_executives, search_physicians, search_news. Retries, pagination, logging.</td></tr>
+          <tr><td>ICP Matcher</td><td class="fp">enrichment/experiments/icp_matcher.py</td><td>66 titles, 11 search batches, 3-stage scoring. Loads from ICP CSV.</td></tr>
+          <tr><td>Database</td><td class="fp">enrichment/experiments/db.py</td><td>8-table schema, WAL mode, thread-safe. executives, physicians, trigger_signals, account_enrichment, runs, api_calls.</td></tr>
+        </table>
+
+        <div class="sample"><span class="comment"># Direct runner usage (what skills call under the hood):</span>
+source .venv/bin/activate
+
+<span class="comment"># Check status of all runs:</span>
+python enrichment/experiments/runner.py --status
+
+<span class="comment"># Run a recipe:</span>
+python enrichment/experiments/runner.py --recipe 4 --scope enterprise --live
+
+<span class="comment"># Resume interrupted run:</span>
+python enrichment/experiments/runner.py --resume --run-id 23</div>
+      </div>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Pipeline (Legacy 7-Step)</h3>
+        <div><span class="badge badge-script">LEGACY</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <p class="desc-text">Original pipeline in <span class="fp">pipeline/experiments/</span>. 7 steps: load → score → enrich → wash → compose → push → metrics. Superseded by the enrichment + hello-world architecture but data is still in <span class="fp">pipeline/glytec_v1.db</span>.</p>
+        <table class="ref">
+          <tr><th>Step</th><th>Script</th><th>Purpose</th></tr>
+          <tr><td>1</td><td class="fp">step1_load_data.py</td><td>Load CSVs (facilities, accounts, parent systems)</td></tr>
+          <tr><td>2</td><td class="fp">step2_score_accounts.py</td><td>6-factor weighted scoring model</td></tr>
+          <tr><td>3</td><td class="fp">step3_enrich_contacts.py</td><td>Contact discovery via DH API</td></tr>
+          <tr><td>4</td><td class="fp">step4_wash_contacts.py</td><td>Dedup and validation</td></tr>
+          <tr><td>5</td><td class="fp">step5_compose_messages.py</td><td>Email composition + personalization</td></tr>
+          <tr><td>6</td><td class="fp">step6_push_to_salesforge.py</td><td>Push to Salesforge API</td></tr>
+          <tr><td>7</td><td class="fp">step7_pull_metrics.py</td><td>Metrics aggregation</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DATA FILES ──────────────────────────── -->
+  <div class="docs-section" id="sec-datafiles">
+
+    <div class="doc-card open">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Source Data (CSVs + DOCX)</h3>
+        <div><span class="badge badge-data">DATA</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <table class="ref">
+          <tr><th>File</th><th>Size</th><th>Rows</th><th>Contents</th></tr>
+          <tr><td class="fp">data/AI SDR_Facility List_1.23.26.csv</td><td>4.7 MB</td><td>9,774</td><td>Hospital facilities: beds, revenue, EHR, ICU stats, geo, ownership</td></tr>
+          <tr><td class="fp">data/AI SDR_Facility List_Supplemental Data_1.23.26.csv</td><td>2.0 MB</td><td>5,475</td><td>Same facilities with rep assignments + clinical detail</td></tr>
+          <tr><td class="fp">data/AI SDR_Parent Account List_1.23.26.csv</td><td>292 KB</td><td>1,683</td><td>Parent health systems: bed counts, segment, opportunity $</td></tr>
+          <tr><td class="fp">data/AI SDR_ICP Titles_2.12.26.csv</td><td>5.3 KB</td><td>66</td><td>ICP titles: department, category, intent score, job level</td></tr>
+          <tr><td class="fp">data/AI SDR_Glytec_New Story_Magnetic Messaging Framework_1.28.26.docx</td><td>3.0 MB</td><td>—</td><td>Brand messaging framework, magnetic stories, value props</td></tr>
+        </table>
+        <p class="desc-text"><strong>Join key:</strong> <code>Definitive ID</code> links facilities across CSVs. <code>Highest Level Parent</code> groups facilities under parent systems.</p>
+      </div>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>ICP Configuration</h3>
+        <div><span class="badge badge-data">DATA</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <p class="fp">outbound/ICP.json</p>
+        <p class="desc-text">530-line JSON with the full ICP title taxonomy. 66 titles + 2 synthetic (CMO, Chief of Medicine) = 68. Used by <span class="fp">enrichment/experiments/icp_matcher.py</span>.</p>
+        <p class="desc-text"><strong>12 titles matched in DH data</strong> (17,557 ICP-matched executives):</p>
+        <div class="sample">Director, Pharmacy          4,592
+CNO (Chief Nursing Officer)  2,341
+CEO                          2,143
+Director, Inpatient Nursing  2,080
+CMO (Chief Medical Officer)  1,912
+CFO                          1,757
+COO                          1,429
+Chief Pharmacy Officer         339
+Chief Compliance Officer       280
+CQO (Chief Quality Officer)    273
+CMIO                           223
+Chief Strategy Officer         188</div>
+      </div>
+    </div>
+
+    <div class="doc-card">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>Environment Variables</h3>
+        <div><span class="badge badge-data">CONFIG</span> <span class="chevron">&#9654;</span></div>
+      </div>
+      <div class="doc-card-body">
+        <p class="desc-text">Set in <span class="fp">.env</span> at project root:</p>
+        <div class="sample">DATAGEN_API_KEY=...          <span class="comment"># Datagen SDK (MCP orchestration)</span>
+INSTANTLY_API_KEY=...        <span class="comment"># Instantly API v2 (Bearer token)</span>
+CLAY_WEBHOOK_URL=...         <span class="comment"># Clay webhook for positive reply push</span>
+DH_API_KEY=...               <span class="comment"># Definitive Healthcare HospitalView API</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CONFIG ─────────────────────────────── -->
+  <div class="docs-section" id="sec-config">
+
+    <div class="doc-card open">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <h3>config.py — Live Editor</h3>
+        <div>
+          <span class="badge" id="configStatusBadge" style="background:rgba(248,81,73,0.15);color:var(--red)">OFFLINE</span>
+          <span class="chevron">&#9654;</span>
+        </div>
+      </div>
+      <div class="doc-card-body">
+        <p class="desc-text">Edit <span class="fp">gtm-hello-world/config.py</span> constants. Requires <code>python config_server.py</code> running on port 8099.</p>
+
+        <table class="ref" id="configTable">
+          <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
+          <tr>
+            <td><code>DRY_RUN</code></td>
+            <td><select id="cfg-DRY_RUN" style="background:var(--surface);color:var(--text);border:1px solid var(--border);padding:4px 8px;border-radius:4px">
+              <option value="true">True</option><option value="false">False</option>
+            </select></td>
+            <td>Safe mode — True = no real API calls</td>
+          </tr>
+          <tr>
+            <td><code>BOUNCE_RATE_LIMIT</code></td>
+            <td><input id="cfg-BOUNCE_RATE_LIMIT" type="number" step="0.001" min="0" max="1" style="width:80px;background:var(--surface);color:var(--text);border:1px solid var(--border);padding:4px 8px;border-radius:4px"></td>
+            <td>Auto-pause threshold (default 0.05 = 5%)</td>
+          </tr>
+          <tr>
+            <td><code>SPAM_RATE_LIMIT</code></td>
+            <td><input id="cfg-SPAM_RATE_LIMIT" type="number" step="0.001" min="0" max="1" style="width:80px;background:var(--surface);color:var(--text);border:1px solid var(--border);padding:4px 8px;border-radius:4px"></td>
+            <td>Spam complaint threshold (default 0.003 = 0.3%)</td>
+          </tr>
+          <tr>
+            <td><code>UNSUBSCRIBE_RATE_LIMIT</code></td>
+            <td><input id="cfg-UNSUBSCRIBE_RATE_LIMIT" type="number" step="0.001" min="0" max="1" style="width:80px;background:var(--surface);color:var(--text);border:1px solid var(--border);padding:4px 8px;border-radius:4px"></td>
+            <td>Unsubscribe threshold (default 0.02 = 2%)</td>
+          </tr>
+          <tr>
+            <td><code>POSITIVE_THRESHOLD</code></td>
+            <td><input id="cfg-POSITIVE_THRESHOLD" type="number" step="0.05" min="0" max="1" style="width:80px;background:var(--surface);color:var(--text);border:1px solid var(--border);padding:4px 8px;border-radius:4px"></td>
+            <td>AI interest score above this = positive reply</td>
+          </tr>
+          <tr>
+            <td><code>NEGATIVE_THRESHOLD</code></td>
+            <td><input id="cfg-NEGATIVE_THRESHOLD" type="number" step="0.05" min="0" max="1" style="width:80px;background:var(--surface);color:var(--text);border:1px solid var(--border);padding:4px 8px;border-radius:4px"></td>
+            <td>AI interest score below this = negative reply</td>
+          </tr>
+        </table>
+
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button onclick="saveConfig()" style="background:var(--green);color:#0d1117;border:none;padding:6px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Save</button>
+          <button onclick="loadConfig()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);padding:6px 16px;border-radius:6px;font-size:13px;cursor:pointer">Reload</button>
+          <span id="configMsg" style="font-size:12px;color:var(--text-dim);line-height:32px;margin-left:8px"></span>
+        </div>
+
+        <hr class="section-divider">
+        <p class="desc-text"><strong>Read-only paths</strong> (change in config.py directly):</p>
+        <table class="ref" id="configReadonly">
+          <tr><th>Constant</th><th>Value</th></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="docs-section" id="sec-roadmap">
+    <div class="doc-card open">
+      <div class="doc-card-header" onclick="toggleCard(this)">
+        <span class="chevron">&#9654;</span>
+        <h3>Potential Future Enhancements</h3>
+        <span class="badge" style="background:var(--surface2);color:var(--text-dim)">optional</span>
+      </div>
+      <div class="doc-card-body">
+        <p class="desc-text">These are not blockers. The system is fully functional today. These are ideas for future improvement if/when the need arises.</p>
+        <table class="ref">
+          <tr><th>Enhancement</th><th>Area</th><th>Details</th></tr>
+          <tr><td>Auto-pause on kill-switch breach</td><td>pull_metrics.py</td><td>Currently logs a WARNING when bounce rate exceeds 5%. Could auto-call <code>pause_campaign</code> and send an alert.</td></tr>
+          <tr><td>Pre-flight checklist validation</td><td>launch_campaign.py</td><td>Automated checks before activation: mailboxes assigned? leads enrolled? sequences configured? warmup score > 85?</td></tr>
+          <tr><td>Week-over-week trend queries</td><td>check_status.py</td><td>Automated comparison of <code>metric_snapshots</code> across dates. Currently requires manual SQL.</td></tr>
+          <tr><td>Webhook retry logic</td><td>push_to_clay.py</td><td>Retry on 5xx with exponential backoff. Currently fails silently on HTTP errors.</td></tr>
+          <tr><td>Scheduled automation</td><td>Ops</td><td>Cron jobs or task scheduler for daily <code>pull_metrics</code> + <code>process_replies</code>, monthly signal refresh, quarterly contact refresh.</td></tr>
+          <tr><td>Domain diversity checker</td><td>launch_campaign.py</td><td>Warn if all assigned mailboxes share the same domain. Spread across domains for deliverability.</td></tr>
+          <tr><td>Contact scoring in DB</td><td>seed_db.py / enroll</td><td>ICP scoring logic from enrichment pipeline could be applied to hello-world contacts before enrollment.</td></tr>
+          <tr><td>Keyword admin UI</td><td>config_server.py</td><td>Let operators edit positive/negative/OOO keyword lists via the config UI instead of editing <code>process_replies.py</code> directly.</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-docs -->
+
+<!-- ═══ Footer ═══ -->
+<div class="footer">
+  Data saved to localStorage.
+  <button class="btn-red" onclick="resetCampaign()">Reset current campaign</button>
+  &nbsp;|&nbsp;
+  <button class="btn-blue" onclick="exportState()">Export JSON</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!--  JAVASCRIPT                                     -->
+<!-- ═══════════════════════════════════════════════ -->
+<script>
+/* ── Data ─────────────────────────────────────── */
+const CAMPAIGNS = [
+  { id: "01-new-in-role",       name: "New-in-Role (R3)",         recipe: "R3",  skill: "/dh-signals \"{system}\"", file: "01-new-in-role.md" },
+  { id: "02-priority-account",  name: "Priority Account (R4)",    recipe: "R4",  skill: "/dh-accounts enterprise", file: "02-priority-account.md" },
+  { id: "03-ehr-epic",          name: "Epic Liability (R5)",      recipe: "R5",  skill: "/dh-accounts ehr enterprise", file: "03-ehr-epic.md" },
+  { id: "04-ehr-cerner",        name: "Cerner Transition (R5)",   recipe: "R5",  skill: "/dh-accounts ehr enterprise", file: "04-ehr-cerner.md" },
+  { id: "05-ehr-meditech",      name: "MEDITECH Modern (R5)",     recipe: "R5",  skill: "/dh-accounts ehr enterprise", file: "05-ehr-meditech.md" },
+  { id: "06-financial-recovery", name: "Financial Recovery (R6)", recipe: "R6",  skill: "/dh-accounts distress enterprise", file: "06-financial-recovery.md" },
+  { id: "07-territory",         name: "Territory (R7)",           recipe: "R7",  skill: "/dh-signals rep {name}", file: "07-territory-outreach.md" },
+  { id: "08-physician",         name: "Physician Champion (R8)",  recipe: "R8",  skill: "/dh-contacts physicians {id}", file: "08-physician-champion.md" },
+  { id: "09-deep-dive",         name: "Account Deep Dive",        recipe: "R1/R2/R9/R10", skill: "/dh-contacts + /dh-signals enrich", file: "09-account-deep-dive.md" },
+];
+
+const STEPS = [
+  { num: 1, title: "Pick a recipe-campaign",
+    desc: "Choose from campaigns/. Recommended first: 01-new-in-role.md (R3 — data already loaded).",
+    skill: null, tool: "Campaign MD files" },
+  { num: 2, title: "Discover contacts via skills",
+    desc: "Use enrichment skills to pull ICP-matched contacts from the Definitive Healthcare database.",
+    skill: "/dh-signals, /dh-accounts, /dh-contacts", tool: "enrichment.db" },
+  { num: 3, title: "Create campaign in Instantly",
+    desc: "MCP create_campaign with name, subject, body. Assign mailboxes via email_list. Record instantly_campaign_id.",
+    skill: null, tool: "MCP create_campaign" },
+  { num: 4, title: "Set email steps",
+    desc: "3 steps with A/B variant on step 1. Use update_campaign with sequences array.",
+    skill: null, tool: "MCP update_campaign" },
+  { num: 5, title: "Assign sender mailboxes",
+    desc: "3-5 warmed mailboxes, domain-diverse. Check warmup scores > 85.",
+    skill: null, tool: "MCP create_campaign step 2" },
+  { num: 6, title: "Enroll contacts",
+    desc: "MCP add_leads_to_campaign_or_list_bulk (up to 1,000/call). Attach custom_variables (flat JSON only).",
+    skill: null, tool: "MCP add_leads_bulk" },
+  { num: 7, title: "Activate campaign",
+    desc: "Pre-flight checklist, then MCP activate_campaign. Update local DB status.",
+    skill: null, tool: "MCP activate_campaign" },
+  { num: 8, title: "Daily monitoring",
+    desc: "Pull metrics, run kill-switch checks. Bounce > 5% = auto-pause.",
+    skill: null, tool: "python pull_metrics.py --live" },
+  { num: 9, title: "Reply processing",
+    desc: "Scan replies, classify sentiment, triage. Positive replies → Clay push.",
+    skill: null, tool: "python process_replies.py --live" },
+  { num: 10, title: "Weekly reporting",
+    desc: "Full dashboard review. Week-over-week trends, reply breakdown, Clay push status.",
+    skill: null, tool: "python check_status.py" },
+  { num: 11, title: "Monthly signal refresh",
+    desc: "Re-run R3 + R9 to catch new leadership changes, financial shifts, quality updates.",
+    skill: "/dh-signals, /dh-signals enrich", tool: "enrichment skills" },
+  { num: 12, title: "Quarterly contact refresh",
+    desc: "Re-run R4 for full ICP coverage. Dedup, verify, score, plan next wave.",
+    skill: "/dh-accounts enterprise", tool: "enrichment skills" },
+];
+
+const STATUSES = ["pending", "active", "done", "blocked", "skipped"];
+let currentCampaign = null;
+
+/* ── Tab switching ────────────────────────────── */
+document.getElementById("tabBar").addEventListener("click", e => {
+  if (e.target.tagName !== "BUTTON") return;
+  document.querySelectorAll(".tab-bar button").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+  e.target.classList.add("active");
+  document.getElementById("tab-" + e.target.dataset.tab).classList.add("active");
+});
+
+/* ── Docs sub-nav ─────────────────────────────── */
+document.getElementById("docsNav").addEventListener("click", e => {
+  if (e.target.tagName !== "BUTTON") return;
+  document.querySelectorAll("#docsNav button").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".docs-section").forEach(s => s.classList.remove("active"));
+  e.target.classList.add("active");
+  document.getElementById("sec-" + e.target.dataset.section).classList.add("active");
+  if (e.target.dataset.section === "config") loadConfig();
+});
+
+/* ── Collapsible cards ────────────────────────── */
+function toggleCard(header) {
+  header.closest(".doc-card").classList.toggle("open");
+}
+
+/* ── Pipeline state management ────────────────── */
+function storageKey(id) { return `gtm_tracker_${id}`; }
+
+function loadState(id) {
+  const raw = localStorage.getItem(storageKey(id));
+  if (raw) return JSON.parse(raw);
+  return { campaignId: id, steps: STEPS.map(s => ({ num: s.num, status: "pending", notes: "", updatedAt: null })), createdAt: new Date().toISOString(), updatedAt: null };
+}
+function saveState(id, state) { state.updatedAt = new Date().toISOString(); localStorage.setItem(storageKey(id), JSON.stringify(state)); }
+
+function selectCampaign(id) {
+  currentCampaign = id;
+  localStorage.setItem("gtm_tracker_active", id);
+  document.querySelectorAll(".campaign-bar button").forEach(b => b.classList.toggle("active", b.dataset.id === id));
+  const c = CAMPAIGNS.find(x => x.id === id);
+  document.getElementById("campaignTitle").textContent = c.name;
+  document.getElementById("campaignDetail").innerHTML = `
+    <div class="label">Recipe</div><div class="val">${c.recipe}</div>
+    <div class="label">Skill</div><div class="val" style="font-family:var(--mono);color:var(--purple)">${c.skill}</div>
+    <div class="label">Campaign file</div><div class="val">campaigns/${c.file}</div>
+  `;
+  renderPipeline();
+}
+
+function renderPipeline() {
+  const state = loadState(currentCampaign);
+  const el = document.getElementById("pipeline");
+  el.innerHTML = "";
+  let done = 0, blocked = 0, cur = "—";
+  STEPS.forEach((step, i) => {
+    const ss = state.steps[i];
+    if (ss.status === "done") done++;
+    if (ss.status === "blocked") blocked++;
+    if (ss.status === "active" && cur === "—") cur = `Step ${step.num}`;
+    const div = document.createElement("div");
+    div.className = "step";
+    div.innerHTML = `
+      <div class="step-num ${ss.status === 'done' ? 'done' : ss.status === 'active' ? 'active' : ss.status === 'blocked' ? 'blocked' : ss.status === 'skipped' ? 'skipped' : ''}">${ss.status === 'done' ? '✓' : step.num}</div>
+      <div class="step-content">
+        <h3>${step.title}</h3>
+        <div class="desc">${step.desc}</div>
+        ${step.skill ? `<span class="skill-ref">${step.skill}</span>` : ''}
+        <div class="step-notes ${ss.notes ? 'open' : ''}" id="notes-${step.num}">
+          <textarea placeholder="Notes..." onchange="updateNotes(${step.num}, this.value)">${ss.notes || ''}</textarea>
+        </div>
+      </div>
+      <div class="step-tool"><code>${step.tool}</code></div>
+      <div class="step-status">
+        <select onchange="updateStatus(${step.num}, this.value)">
+          ${STATUSES.map(s => `<option value="${s}" ${ss.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+      </div>`;
+    div.querySelector(".step-content").addEventListener("click", e => {
+      if (e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
+      div.querySelector(".step-notes").classList.toggle("open");
+    });
+    el.appendChild(div);
+  });
+  document.getElementById("statProgress").textContent = `${done}/12`;
+  document.getElementById("statCurrent").textContent = cur;
+  document.getElementById("statBlocked").textContent = blocked;
+  document.getElementById("statUpdated").textContent = state.updatedAt ? new Date(state.updatedAt).toLocaleDateString() : "—";
+}
+
+function updateStatus(num, status) { const s = loadState(currentCampaign); const step = s.steps.find(x => x.num === num); step.status = status; step.updatedAt = new Date().toISOString(); saveState(currentCampaign, s); renderPipeline(); }
+function updateNotes(num, notes) { const s = loadState(currentCampaign); s.steps.find(x => x.num === num).notes = notes; saveState(currentCampaign, s); }
+function resetCampaign() { if (!currentCampaign || !confirm("Reset all progress for this campaign?")) return; localStorage.removeItem(storageKey(currentCampaign)); renderPipeline(); }
+function exportState() {
+  const all = {}; CAMPAIGNS.forEach(c => { const s = loadState(c.id); if (s.updatedAt) all[c.id] = s; });
+  const blob = new Blob([JSON.stringify(all, null, 2)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `gtm-tracker-export-${new Date().toISOString().slice(0,10)}.json`; a.click();
+}
+
+/* ── Config server integration ────────────────── */
+const CONFIG_URL = "http://localhost:8099/config";
+
+function loadConfig() {
+  fetch(CONFIG_URL)
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(data => {
+      // Editable fields
+      Object.entries(data.editable).forEach(([k, v]) => {
+        const el = document.getElementById("cfg-" + k);
+        if (!el) return;
+        if (el.tagName === "SELECT") el.value = v ? "true" : "false";
+        else el.value = v;
+      });
+      // Read-only fields
+      const tbody = document.getElementById("configReadonly");
+      tbody.innerHTML = "<tr><th>Constant</th><th>Value</th></tr>";
+      Object.entries(data.readonly).forEach(([k, v]) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td><code>${k}</code></td><td class="fp">${v}</td>`;
+        tbody.appendChild(tr);
+      });
+      // Status badge
+      const badge = document.getElementById("configStatusBadge");
+      badge.textContent = "CONNECTED";
+      badge.style.background = "rgba(63,185,80,0.15)";
+      badge.style.color = "var(--green)";
+      showConfigMsg("Loaded from server", "var(--green)");
+    })
+    .catch(() => {
+      const badge = document.getElementById("configStatusBadge");
+      badge.textContent = "OFFLINE";
+      badge.style.background = "rgba(248,81,73,0.15)";
+      badge.style.color = "var(--red)";
+      showConfigMsg("Server not running — start with: python config_server.py", "var(--red)");
+    });
+}
+
+function saveConfig() {
+  const payload = {};
+  const dryRun = document.getElementById("cfg-DRY_RUN");
+  payload.DRY_RUN = dryRun.value === "true";
+  ["BOUNCE_RATE_LIMIT","SPAM_RATE_LIMIT","UNSUBSCRIBE_RATE_LIMIT","POSITIVE_THRESHOLD","NEGATIVE_THRESHOLD"].forEach(k => {
+    const el = document.getElementById("cfg-" + k);
+    if (el && el.value !== "") payload[k] = parseFloat(el.value);
+  });
+  fetch(CONFIG_URL, { method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(() => { showConfigMsg("Saved to config.py", "var(--green)"); loadConfig(); })
+    .catch(() => showConfigMsg("Save failed — is the server running?", "var(--red)"));
+}
+
+function showConfigMsg(msg, color) {
+  const el = document.getElementById("configMsg");
+  el.textContent = msg; el.style.color = color;
+  setTimeout(() => { el.textContent = ""; }, 4000);
+}
+
+/* ── Init ─────────────────────────────────────── */
+(function init() {
+  const bar = document.getElementById("campaignBar");
+  CAMPAIGNS.forEach(c => {
+    const btn = document.createElement("button");
+    btn.textContent = c.name; btn.dataset.id = c.id;
+    btn.onclick = () => selectCampaign(c.id);
+    const s = loadState(c.id);
+    if (s.updatedAt) { const d = s.steps.filter(x => x.status === "done").length; if (d > 0) btn.textContent += ` (${d}/12)`; }
+    bar.appendChild(btn);
+  });
+  selectCampaign(localStorage.getItem("gtm_tracker_active") || CAMPAIGNS[0].id);
+})();
+</script>
+</body>
+</html>
