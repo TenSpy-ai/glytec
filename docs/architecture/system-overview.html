@@ -75,17 +75,21 @@
   .dd-card .dd-title { font-size: 12px; font-weight: 700; color: #e2e8f0; margin-bottom: 4px; }
   .dd-card .dd-text { font-size: 12px; color: #8a9ab5; line-height: 1.5; }
 
-  /* ── SOURCE CARDS ── */
-  .sources-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-  .source { background: #111827; border: 1px solid #1e293b; }
+  /* ── SOURCE CARDS (inside Clay) ── */
+  .sources-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .source { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 18px 20px; }
   .source .icon {
-    width: 42px; height: 42px; border-radius: 11px;
+    width: 38px; height: 38px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 20px; margin-bottom: 14px;
+    font-size: 18px; margin-bottom: 12px;
   }
+  .source .section-title { font-size: 18px; }
+  .source .section-desc { font-size: 12px; }
+  .src-clay-src .icon { background: #1e3a5f; }
   .src-zi .icon { background: #2a1a4a; }
   .src-dh .icon { background: #1a3d30; }
   .src-web .icon { background: #3d2a1a; }
+  .src-clay-src .section-title { color: #7eb8f7; }
   .src-zi .section-title { color: #a78bfa; }
   .src-dh .section-title { color: #4ecca3; }
   .src-web .section-title { color: #e8985a; }
@@ -266,7 +270,7 @@
   .footer { text-align: center; margin-top: 36px; font-size: 11px; color: #334155; }
 
   @media (max-width: 760px) {
-    .sources-row { grid-template-columns: 1fr; }
+    .sources-row { grid-template-columns: 1fr !important; }
     .split-row { grid-template-columns: 1fr; }
     .agent-pipeline { grid-template-columns: 1fr; }
     .pipe-arrow { transform: rotate(90deg); padding: 8px 0; }
@@ -283,94 +287,14 @@
 <div class="header">
   <h1>Glytec AI SDR &mdash; V1 Infrastructure</h1>
   <p class="tagline">
-    Three things make this work: <strong>clean data in</strong>, <strong>intelligent outreach out</strong>, and <strong>visibility across everything</strong>.<br>
+    Three things make this work:<br>
+    <strong>1. clean data in</strong>, <strong>2. intelligent outreach out</strong>, and <strong>3. visibility across everything</strong>.<br>
     This is the system that turns hospital data into qualified pipeline.
   </p>
-  <span class="date-badge">V1 RELEASE &mdash; FEB 20, 2026</span>
+  <span class="date-badge">V1 RELEASE &mdash; WEEK OF FEB 22, 2026</span>
 </div>
 
-<!-- ████ DATA SOURCES ████ -->
-<div class="sources-row">
-
-  <div class="section source src-zi">
-    <div class="icon">&#128269;</div>
-    <div class="section-label" style="color:#a78bfa;">Data Source</div>
-    <div class="section-title">ZoomInfo</div>
-    <div class="section-desc">Verified business emails, direct dials, title enrichment for Decision Maker roles</div>
-    <details>
-      <summary>What ZoomInfo delivers</summary>
-      <div class="dropdown-body">
-        ZoomInfo is the <strong>primary source for verified contact data</strong>. DH email quality is poor &mdash; ZoomInfo fills that gap with accuracy.
-        <ul>
-          <li><strong>Verified emails + direct dials</strong> &mdash; highest verification rate of any source. ZoomInfo email always wins in merge rules.</li>
-          <li><strong>C-suite &amp; Director coverage</strong> &mdash; 70&ndash;85% hit rate on Tier 1 ICP titles, 50&ndash;65% on Tier 2 Decision Makers.</li>
-          <li><strong>Title &amp; org enrichment</strong> &mdash; current title, department, company, employment history.</li>
-          <li><strong>Gap:</strong> Weak on clinical titles (CDCES, hospitalists, clinical pharmacists). That's where web scraping picks up.</li>
-        </ul>
-        <strong>60K credits available &mdash; expires March 12.</strong> Use them or lose them.
-      </div>
-    </details>
-  </div>
-
-  <div class="section source src-dh">
-    <div class="icon">&#127973;</div>
-    <div class="section-label" style="color:#4ecca3;">Data Source</div>
-    <div class="section-title">Definitive Healthcare</div>
-    <div class="section-desc">Hospital demographics, EHR vendor, financials, CMS quality, trigger signals</div>
-    <details>
-      <summary>What DH delivers</summary>
-      <div class="dropdown-body">
-        HospitalView API is the <strong>backbone for account intelligence</strong>. Static CSVs degrade daily &mdash; the API keeps everything current.
-        <div class="dd-grid">
-          <div class="dd-card">
-            <div class="dd-title">Account Scoring</div>
-            <div class="dd-text">Bed count, EHR vendor, operating margin, CMS stars, readmission rates &mdash; 5 of 6 scoring factors come from DH.</div>
-          </div>
-          <div class="dd-card">
-            <div class="dd-title">Trigger Signals</div>
-            <div class="dd-text">EHR migrations, leadership changes, quality initiatives, capital projects, RFPs. The "why now" that makes outreach timely instead of random.</div>
-          </div>
-          <div class="dd-card">
-            <div class="dd-title">Executive Contacts</div>
-            <div class="dd-text">Facility-level leadership mapped by Definitive ID. Cross-referenced with ZoomInfo for verified emails.</div>
-          </div>
-          <div class="dd-card">
-            <div class="dd-title">Segmentation</div>
-            <div class="dd-text">EHR vendor &times; financial health &times; facility size. Drives which messaging variant each account receives.</div>
-          </div>
-        </div>
-      </div>
-    </details>
-  </div>
-
-  <div class="section source src-web">
-    <div class="icon">&#127760;</div>
-    <div class="section-label" style="color:#e8985a;">Data Source</div>
-    <div class="section-title">Web Scraping</div>
-    <div class="section-desc">Hospital leadership pages, press releases, department directories, org charts</div>
-    <details>
-      <summary>Why scraping matters</summary>
-      <div class="dropdown-body">
-        <strong>Clinical titles are invisible to business databases.</strong> ZoomInfo covers C-suite well, but CDCES, nurse educators, clinical pharmacists, and hospitalists are almost never indexed.
-        <ul>
-          <li><strong>Firecrawl</strong> scrapes hospital leadership pages and department directories for clinical contacts ZoomInfo misses.</li>
-          <li><strong>Company research</strong> (Perplexity + web search) surfaces press releases, earnings calls, and strategic announcements that DH doesn't cover.</li>
-        </ul>
-        This is the source that gets us from 50% contact coverage to 80%.
-      </div>
-    </details>
-  </div>
-
-</div>
-
-<!-- ▼ arrows into Clay ▼ -->
-<div class="connector-multi">
-  <div class="line"></div>
-  <div class="line"></div>
-  <div class="line"></div>
-</div>
-
-<!-- ████ CLAY (Orchestrator + Own Sourcing + Washing Machine) ████ -->
+<!-- ████ CLAY (Orchestrator — everything lives here) ████ -->
 <div class="clay-box">
   <div class="clay-header">
     <div class="icon">&#9883;</div>
@@ -380,45 +304,124 @@
   </div>
   <div class="clay-dual-label">
     <span class="lbl-orch">Orchestrator</span>
-    <span class="lbl-src">Also Sources Contacts</span>
+    <span class="lbl-src">Data Sources</span>
     <span class="lbl-wash">Contact Washing Machine</span>
   </div>
   <div class="section-desc">
-    Clay is the <strong style="color:#e2e8f0;">central hub</strong>. Data from ZoomInfo, Definitive Healthcare, and web scraping flows in. Clay also runs its own enrichment &mdash; pulling contacts directly via enrichment waterfalls and third-party lookups. Then it cleans every record before anything touches Salesforce.
+    Clay is the <strong style="color:#e2e8f0;">central hub</strong>. All data sources feed into Clay. Clay also runs its own enrichment on top. Then it cleans every record before anything touches Salesforce.
   </div>
 
   <div class="clay-inner">
 
-    <!-- Sub: How data enters -->
-    <div class="clay-sub">
-      <div class="sub-title">&#8594; How data flows in</div>
-      <div class="sub-desc">Clay ingests from all three external sources and runs its own enrichment on top. Each source has a role:</div>
-      <details>
-        <summary>Data flow details</summary>
-        <div class="dropdown-body">
-          <div class="dd-grid">
-            <div class="dd-card">
-              <div class="dd-title">ZoomInfo &rarr; Clay</div>
-              <div class="dd-text">Bulk enrichment by account domain + ICP title keywords. Returns verified emails, phones, titles, LinkedIn URLs. Primary source for Tier 1 &amp; Tier 2 Decision Maker contacts.</div>
-            </div>
-            <div class="dd-card">
-              <div class="dd-title">Definitive HC &rarr; Clay</div>
-              <div class="dd-text">Account data (beds, EHR, financials, CMS quality) + executive contacts by Definitive ID + trigger signals (news, RFPs). Cross-referenced with ZoomInfo results during dedup.</div>
-            </div>
-            <div class="dd-card">
-              <div class="dd-title">Web Scraping &rarr; Clay</div>
-              <div class="dd-text">Firecrawl scrapes hospital leadership pages for clinical titles ZoomInfo misses: CDCES, nurse educators, pharmacy leads, hospitalists. Company research (Perplexity) fills signal gaps.</div>
-            </div>
-            <div class="dd-card">
-              <div class="dd-title">Clay's Own Sourcing</div>
-              <div class="dd-text">Clay runs its own enrichment waterfall on top of external data &mdash; third-party lookups, data provider integrations, and email-finding services to fill remaining gaps and validate results.</div>
+    <!-- ── DATA SOURCES (nested inside Clay) ── -->
+    <div class="section-label" style="color:#5b9bd5; margin-bottom:10px; margin-top:4px;">Data Sources &mdash; All Feeding Into Clay</div>
+    <div class="sources-row">
+
+      <div class="source src-clay-src">
+        <div class="icon">&#9883;</div>
+        <div class="section-label" style="color:#7eb8f7;">Clay's Own Sourcing</div>
+        <div class="section-title">Clay Enrichment</div>
+        <div class="section-desc">Runs its own enrichment waterfall &mdash; third-party lookups, data provider integrations, email-finding services</div>
+        <details>
+          <summary>How Clay sources directly</summary>
+          <div class="dropdown-body">
+            Clay isn't just the orchestrator &mdash; it's also a <strong>data source in its own right</strong>. On top of ingesting from ZoomInfo, DH, and scraping, Clay runs its own enrichment:
+            <ul>
+              <li><strong>Email-finding services</strong> &mdash; waterfall across multiple providers to fill gaps where ZoomInfo has no match</li>
+              <li><strong>Third-party data lookups</strong> &mdash; additional provider integrations for title verification, company data, and contact details</li>
+              <li><strong>Enrichment validation</strong> &mdash; cross-checks results from other sources against its own data to flag conflicts</li>
+            </ul>
+          </div>
+        </details>
+      </div>
+
+      <div class="source src-zi">
+        <div class="icon">&#128269;</div>
+        <div class="section-label" style="color:#a78bfa;">Data Source</div>
+        <div class="section-title">ZoomInfo</div>
+        <div class="section-desc">Verified business emails, direct dials, title enrichment for Decision Maker roles</div>
+        <details>
+          <summary>What ZoomInfo delivers</summary>
+          <div class="dropdown-body">
+            ZoomInfo is the <strong>primary source for verified contact data</strong>. DH email quality is poor &mdash; ZoomInfo fills that gap.
+            <ul>
+              <li><strong>Verified emails + direct dials</strong> &mdash; highest verification rate. ZoomInfo email always wins in merge rules.</li>
+              <li><strong>C-suite &amp; Director coverage</strong> &mdash; 70&ndash;85% hit rate on Tier 1, 50&ndash;65% on Tier 2 Decision Makers.</li>
+              <li><strong>Gap:</strong> Weak on clinical titles (CDCES, hospitalists, pharmacists). That's where scraping picks up.</li>
+            </ul>
+            <strong>60K credits available &mdash; expires March 12.</strong> Use them or lose them.
+          </div>
+        </details>
+      </div>
+
+      <div class="source src-dh">
+        <div class="icon">&#127973;</div>
+        <div class="section-label" style="color:#4ecca3;">Data Source</div>
+        <div class="section-title">Definitive HC</div>
+        <div class="section-desc">Hospital demographics, EHR vendor, financials, CMS quality, trigger signals</div>
+        <details>
+          <summary>What the HospitalView API delivers &amp; what it powers</summary>
+          <div class="dropdown-body">
+            HospitalView Commercial API is the <strong>backbone for account intelligence</strong>. Exposes data via GET and POST endpoints, all keyed by Definitive ID. Every capability maps directly to a piece of the infrastructure.
+            <div class="dd-grid">
+              <div class="dd-card">
+                <div class="dd-title">Enterprise Account Segmentation</div>
+                <div class="dd-text">staffedBeds, hospitalType, ownership, academicMedicalCenter, traumaCenter, firmType. <strong>&rarr; Powers segment assignment</strong> (Enterprise/Strategic vs Commercial), bed-weighted scoring (20% of account score), and facility-level targeting.</div>
+              </div>
+              <div class="dd-card">
+                <div class="dd-title">Network / IDN Hierarchy</div>
+                <div class="dd-text">networkId, networkName, networkParentId, networkParentName, affiliated facilities. <strong>&rarr; Powers parent/child account mapping.</strong> One API call returns every facility under a health system.</div>
+              </div>
+              <div class="dd-card">
+                <div class="dd-title">Technology Install (EHR)</div>
+                <div class="dd-text">vendor, product, vendorStatus, implementationYear. <strong>&rarr; Powers EHR-segmented messaging</strong> &mdash; Epic = DIY liability angle, Cerner = Oracle transition risk, MEDITECH = modernization. This is Layer 2 of message composition.</div>
+              </div>
+              <div class="dd-card">
+                <div class="dd-title">Executive Contacts</div>
+                <div class="dd-text">standardizedTitle, positionLevel (C-Level, VP, Director), department, primaryEmail, directPhone, linkedinProfileURL. <strong>&rarr; Feeds contact enrichment pipeline.</strong> Email quality is poor &mdash; ZoomInfo overwrites &mdash; but titles, departments, and LinkedIn URLs are high-value for ICP matching.</div>
+              </div>
+              <div class="dd-card">
+                <div class="dd-title">Quality &amp; Hospital Compare</div>
+                <div class="dd-text">readmissionPenalty, VBP Adjustment, HAC Rate Penalty, CMS stars. These are the <strong>Hospital Compare objects</strong> exposed in the API. <strong>&rarr; Powers CMS quality scoring</strong> (15% of account score) and the &ldquo;CMS is publicly reporting your glycemic harm&rdquo; messaging angle.</div>
+              </div>
+              <div class="dd-card">
+                <div class="dd-title">Financials</div>
+                <div class="dd-text">staffedBeds, numEmployees, discharges, operating margin. <strong>&rarr; Powers the financial health matrix.</strong> Unprofitable = ROI-led messaging. Profitable = CMS quality-led messaging. This is Layer 3 of message composition.</div>
+              </div>
+              <div class="dd-card">
+                <div class="dd-title">News &amp; Intelligence (Triggers)</div>
+                <div class="dd-text">intelligenceType (M&amp;A, Partnerships, Leadership Changes, Clinical Trials), newsEventTitle, publicationDate. <strong>&rarr; Powers trigger-based outbound timing.</strong> EHR migration announcement = &ldquo;don't build a DIY calculator.&rdquo; New CNO = new evaluation cycle = buying window.</div>
+              </div>
+              <div class="dd-card">
+                <div class="dd-title">RFPs &amp; Certificates of Need</div>
+                <div class="dd-text">type, category (Technology, Construction), classification (Solicitation, Certificate of Need), datePosted, dateDue. <strong>&rarr; Another trigger signal source.</strong> Technology RFPs = active buying cycle. New-build CON = new unit deployment opportunity.</div>
+              </div>
             </div>
           </div>
-        </div>
-      </details>
+        </details>
+      </div>
+
+      <div class="source src-web">
+        <div class="icon">&#127760;</div>
+        <div class="section-label" style="color:#e8985a;">Data Source</div>
+        <div class="section-title">Web Scraping</div>
+        <div class="section-desc">Hospital leadership pages, press releases, department directories, org charts</div>
+        <details>
+          <summary>Why scraping matters</summary>
+          <div class="dropdown-body">
+            <strong>Clinical titles are invisible to business databases.</strong> ZoomInfo covers C-suite, but CDCES, nurse educators, and hospitalists are almost never indexed.
+            <ul>
+              <li><strong>Firecrawl</strong> scrapes hospital leadership pages for clinical contacts ZoomInfo misses.</li>
+              <li><strong>Company research</strong> (Perplexity + web) surfaces press releases and announcements DH doesn't cover.</li>
+            </ul>
+            This is the source that gets us from 50% to 80% contact coverage.
+          </div>
+        </details>
+      </div>
+
     </div>
 
-    <!-- Sub: Washing Machine -->
+    <!-- ── WASHING MACHINE (nested inside Clay, below sources) ── -->
     <div class="washer-inner">
       <div class="section-label" style="color:#7eb8f7;">Every contact must pass through &mdash; no exceptions</div>
       <div class="section-title">
@@ -433,9 +436,9 @@
       <div class="washer-steps">
         <div class="washer-step"><span class="num">1</span> Dedup &amp; Merge</div>
         <div class="washer-step"><span class="num">2</span> Email Validation</div>
-        <div class="washer-step"><span class="num">3</span> LinkedIn Cross-Ref</div>
-        <div class="washer-step"><span class="num">4</span> ICP Title Match</div>
-        <div class="washer-step"><span class="num">5</span> Suppression Check</div>
+        <div class="washer-step"><span class="num">3</span> Suppression Check</div>
+        <div class="washer-step"><span class="num">4</span> LinkedIn Cross-Ref</div>
+        <div class="washer-step"><span class="num">5</span> ICP Title Match</div>
         <div class="washer-step"><span class="num">6</span> Account Mapping</div>
       </div>
       <details>
@@ -450,19 +453,19 @@
             </div>
             <div class="dd-card">
               <div class="dd-title">2. Email Validation</div>
-              <div class="dd-text">NeverBounce / ZeroBounce waterfall. Invalid emails never enter a sequence. If bounce exceeds 3%, all sends auto-pause. Zero tolerance.</div>
+              <div class="dd-text">NeverBounce / ZeroBounce waterfall. Invalid emails never enter a sequence. If bounce exceeds 5%, all sends auto-pause. Zero tolerance.</div>
             </div>
             <div class="dd-card">
-              <div class="dd-title">3. LinkedIn Cross-Reference</div>
+              <div class="dd-title">3. Suppression Check</div>
+              <div class="dd-text">Checked against: current customers, active opportunities, competitors, prior opt-outs, and do-not-contact flags. Suppressed contacts are flagged (not deleted &mdash; audit trail matters) but never enter a sequence.</div>
+            </div>
+            <div class="dd-card">
+              <div class="dd-title">4. LinkedIn Cross-Reference</div>
               <div class="dd-text">Every contact is checked against their LinkedIn profile. If they've changed titles or moved to a different company, the contact is <strong>flagged and marked stale</strong>. Prevents sending to people who no longer hold the role we're targeting.</div>
             </div>
             <div class="dd-card">
-              <div class="dd-title">4. ICP Title Match</div>
-              <div class="dd-text">Fuzzy-match every contact against 66 ICP titles. Assigns tier (1/2/3), intent score (50&ndash;95), category (Decision Maker vs Influencer), function type, and job level. Non-matching titles flagged for review.</div>
-            </div>
-            <div class="dd-card">
-              <div class="dd-title">5. Suppression Check</div>
-              <div class="dd-text">Checked against: current customers, active opportunities, competitors, prior opt-outs, and do-not-contact flags. Suppressed contacts are flagged (not deleted &mdash; audit trail matters) but never enter a sequence.</div>
+              <div class="dd-title">5. ICP Title Match</div>
+              <div class="dd-text">Fuzzy-match every contact against 66 ICP titles. Assigns category (Decision Maker vs Influencer), function type, and job level. Non-matching titles flagged for review.</div>
             </div>
             <div class="dd-card">
               <div class="dd-title">6. Account Mapping</div>
@@ -500,11 +503,11 @@
       <div class="dd-grid" style="margin-top:12px;">
         <div class="dd-card">
           <div class="dd-title">Account Records</div>
-          <div class="dd-text">Name, Definitive ID, segment, account score (0&ndash;100), score tier (Priority / Active / Nurture / Monitor), EHR vendor, bed count, facility count, operating margin, CMS stars, readmission rate, latest signal, signal date, assigned rep, do-not-contact flag.</div>
+          <div class="dd-text">Name, Definitive ID, segment, account score (0&ndash;100), score tier (Priority / Active / Nurture / Monitor), EHR vendor, bed count, facility count, operating margin, CMS stars, readmission rate, latest signal, signal date, assigned rep, do-not-contact flag. Most account-level fields sourced from HospitalView API via Clay.</div>
         </div>
         <div class="dd-card">
           <div class="dd-title">Contact Records</div>
-          <div class="dd-text">Name, email (golden record), phone, title, department, ICP tier, intent score, ICP category (Decision Maker / Influencer), function type (Clinical / Business), job level, facility Definitive ID, LinkedIn URL, enrichment source, email validated flag, opt-out status, snooze date.</div>
+          <div class="dd-text">Name, email (golden record), phone, title, department, ICP category (Decision Maker / Influencer), function type (Clinical / Business), job level, facility Definitive ID, LinkedIn URL, enrichment source, email validated flag, opt-out status, snooze date.</div>
         </div>
       </div>
     </div>
@@ -535,7 +538,34 @@
           <li><strong>Day 7:</strong> Email 3 &mdash; direct CTA + case study</li>
           <li><strong>Day 10:</strong> LinkedIn follow-up (if connection accepted)</li>
         </ul>
-        <strong>Kill switch:</strong> Bounce &gt;5% or spam &gt;0.3% in any 24-hour window auto-pauses everything. Protects sender reputation.
+        <strong>Kill switch:</strong> Bounce &gt;5% or spam &gt;0.3% in any 24-hour window auto-pauses everything. Monitored via Salesforge webhooks + Warmforge placement tests. Auto-pause logic runs on Datagen.dev.
+      </div>
+    </details>
+    <details>
+      <summary>Salesforge + Warmforge APIs (how it runs programmatically)</summary>
+      <div class="dropdown-body">
+        Two APIs, one platform. Called via <strong>Claude Code scripts or Datagen SDK</strong> &mdash; never through the UI.
+        <div class="dd-grid" style="grid-template-columns:1fr; margin-top:10px;">
+          <div class="dd-card">
+            <div class="dd-title">Salesforge API &mdash; Outbound</div>
+            <div class="dd-text">
+              <strong>Contacts:</strong> <code>POST /contacts/bulk</code> or <code>PUT /sequences/{id}/import-lead</code> (creates + enrolls in one call). Contact model has 8 fields: id, name, email, company, linkedinUrl, tags, customVars. <code>jobTitle</code> does NOT persist &mdash; use <code>customVars</code>.<br>
+              <strong>Sequences:</strong> <code>POST /sequences</code> to create (requires <code>productId</code>, <code>language: "american_english"</code>, <code>timezone</code>). <code>PUT /sequences/{id}/steps</code> for email content. <code>PUT /sequences/{id}/mailboxes</code> to assign warmed inboxes (must be PUT, not POST).<br>
+              <strong>DNC sync:</strong> <code>POST /dnc/bulk</code> pushes Clay suppression list &mdash; body is <code>{"dncs": ["email"]}</code> (array of strings). Enforced at sequencer level.<br>
+              <strong>Metrics:</strong> <code>GET /sequences/{id}/analytics</code> (requires <code>from_date</code> + <code>to_date</code>) + <code>GET /sequence-metrics</code> (workspace-level) for sent/opened/replied/bounced.<br>
+              <strong>Webhooks:</strong> <code>POST /integrations/webhooks</code> captures opens, replies, bounces in real-time &rarr; feeds Datagen auto-pause + Salesforce activity. 10 event types: email_sent, email_opened, link_clicked, email_replied, linkedin_replied, contact_unsubscribed, email_bounced, positive_reply, negative_reply, label_changed.
+            </div>
+          </div>
+          <div class="dd-card">
+            <div class="dd-title">Warmforge API &mdash; Deliverability</div>
+            <div class="dd-text">
+              <strong>Mailbox onboarding:</strong> <code>POST /mailboxes/connect-oauth2</code> for Gmail/Outlook (Clayton + Reagan inboxes).<br>
+              <strong>Warmup monitoring:</strong> <code>GET /mailboxes/{address}/warmup/stats</code> &mdash; daily sent/reply/spam by provider. Must hit &ldquo;warm&rdquo; status before any sequence.<br>
+              <strong>Placement tests:</strong> <code>POST /placement-tests</code> sends to seed addresses. Returns inbox vs spam counts by provider. Run before every campaign launch.<br>
+              <strong>Reputation:</strong> <code>GET /mailboxes/{address}</code> returns DNS health + reputation scores. Drop = mailbox pulled from sequences.
+            </div>
+          </div>
+        </div>
       </div>
     </details>
   </div>
@@ -609,7 +639,7 @@
       <div class="pipe-item">
         <div class="pi-title">Contact &amp; ICP Data</div>
         <div class="pi-src">From Salesforce &larr; Clay</div>
-        <div class="pi-desc">Title, ICP tier, intent score, department, function type, LinkedIn URL</div>
+        <div class="pi-desc">Title, ICP category, department, function type, LinkedIn URL</div>
       </div>
       <div class="pipe-item">
         <div class="pi-title">Messaging Framework</div>
@@ -626,7 +656,7 @@
       <div class="ps-label"><span class="ps-num">2</span> Compose</div>
       <div class="pipe-item">
         <div class="pi-title">Select Messaging Variant</div>
-        <div class="pi-desc">Persona tier &times; EHR vendor &times; financial health = ~12 template variants. CNO gets safety language. CFO gets ROI language.</div>
+        <div class="pi-desc">Persona tier &times; EHR vendor <em style="color:#4ecca3;">(DH)</em> &times; financial health <em style="color:#4ecca3;">(DH)</em> = ~12 template variants. CNO gets safety language. CFO gets ROI language.</div>
       </div>
       <div class="pipe-item">
         <div class="pi-title">AI Writes Personal Hook</div>
@@ -678,8 +708,8 @@
       <strong>Example: Epic + Enterprise/Strategic + Unprofitable + CNO</strong><br><br>
       <em>"Your nurses are titrating insulin using an unvalidated Epic calculator while CMS publicly reports your glycemic harm outcomes starting this year. 55.9% of facilities are already losing money &mdash; Glytec reduces LOS by 3.18 days on average. MUSC Health chose Glytec specifically for Epic integration and CMS readiness. Worth 15 minutes?"</em><br><br>
       <strong>Layer 1 (Persona):</strong> CNO &rarr; nursing workflow + patient safety framing<br>
-      <strong>Layer 2 (EHR):</strong> Epic &rarr; DIY calculator liability angle<br>
-      <strong>Layer 3 (Urgency):</strong> Unprofitable &rarr; LOS reduction ROI<br>
+      <strong>Layer 2 (EHR):</strong> Epic &rarr; DIY calculator liability angle <em style="color:#4ecca3;">&mdash; via DH</em><br>
+      <strong>Layer 3 (Urgency):</strong> Unprofitable &rarr; LOS reduction ROI <em style="color:#4ecca3;">&mdash; via DH</em><br>
       <strong>Signal hook:</strong> CMS eCQM public reporting (universal trigger for 2026)
     </div>
   </details>
@@ -714,12 +744,6 @@
     <div class="dot">&#128100;</div>
   </div>
   <div class="prospect-label">Hospital System Decision Makers &amp; Clinical Champions</div>
-  <div style="margin-top:12px;">
-    <span class="metric"><span class="val">20</span><span class="label">contacts / account</span></span>
-    <span class="metric"><span class="val">66</span><span class="label">ICP titles</span></span>
-    <span class="metric"><span class="val">$485M</span><span class="label">Enterprise pipeline</span></span>
-    <span class="metric"><span class="val">296</span><span class="label">target accounts</span></span>
-  </div>
 </div>
 
 <!-- ████ BOTTOM: NEXT STEPS ████ -->

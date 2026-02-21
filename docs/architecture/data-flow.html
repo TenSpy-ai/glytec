@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glytec AI SDR — Data Flow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #08090c;
+    color: #c8d0e0;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    padding: 32px 40px 0;
+    max-width: 1280px; margin: 0 auto;
+  }
+  .topbar h1 { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+  .topbar .sub { font-size: 13px; color: #5a6580; margin-top: 4px; }
+  .topbar .badge {
+    display: inline-block; margin-top: 10px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    padding: 4px 14px; border-radius: 20px;
+    background: #111827; color: #5b9bd5; border: 1px solid #1e3a5f;
+  }
+
+  /* ── Canvas ── */
+  .flow-canvas {
+    max-width: 1280px; margin: 40px auto 0; padding: 0 40px 80px;
+    position: relative;
+  }
+
+  /* ── Flowing river line (vertical spine) ── */
+  .spine {
+    position: absolute;
+    left: 50%; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom,
+      transparent 0%,
+      #1e3a5f 3%,
+      #1e3a5f 30%,
+      #2e4a7a 50%,
+      #3a2660 65%,
+      #1e4a2a 80%,
+      transparent 100%
+    );
+    transform: translateX(-50%);
+    z-index: 0;
+  }
+
+  /* ── Animated dots flowing down spine ── */
+  .spine::before, .spine::after {
+    content: '';
+    position: absolute;
+    left: 50%; transform: translateX(-50%);
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #5b9bd5;
+    box-shadow: 0 0 8px #5b9bd5;
+    animation: flowDot 6s linear infinite;
+  }
+  .spine::after { animation-delay: -3s; }
+  @keyframes flowDot {
+    0% { top: 2%; opacity: 0; }
+    5% { opacity: 1; }
+    50% { background: #b57edc; box-shadow: 0 0 8px #b57edc; }
+    80% { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+    95% { opacity: 1; }
+    100% { top: 98%; opacity: 0; }
+  }
+
+  /* ── Phase marker ── */
+  .phase {
+    position: relative; z-index: 1;
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 32px;
+  }
+  .phase-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 3px solid var(--c, #5b9bd5);
+    background: #08090c;
+    flex-shrink: 0;
+    position: relative;
+    left: 50%; transform: translateX(-50%);
+  }
+  .phase-line {
+    position: absolute;
+    left: calc(50% + 16px);
+    height: 2px; width: 80px;
+    background: var(--c, #5b9bd5);
+    opacity: 0.3;
+  }
+  .phase-label {
+    font-size: 10px; font-weight: 800; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--c, #5b9bd5);
+    white-space: nowrap;
+  }
+
+  /* ── Node (a stop on the flow) ── */
+  .node {
+    position: relative; z-index: 1;
+    margin-bottom: 24px;
+  }
+  .node-row {
+    display: flex; gap: 20px; align-items: flex-start;
+  }
+  .node-left { flex: 1; text-align: left; padding-right: 40px; }
+  .node-center {
+    width: 44px; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .node-right { flex: 1; text-align: left; padding-left: 40px; }
+
+  .node-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; background: #111827; border: 2px solid var(--c, #1e3a5f);
+    position: relative; z-index: 2;
+  }
+
+  .node-title {
+    font-size: 17px; font-weight: 800; color: #fff; margin-bottom: 3px;
+  }
+  .node-desc {
+    font-size: 13px; color: #6a7a90; line-height: 1.55;
+  }
+  .node-desc strong { color: #c8d0e0; }
+
+  /* ── Branching arms ── */
+  .branch-arm {
+    height: 2px; background: var(--c, #1e3a5f); opacity: 0.4;
+    position: absolute; top: 22px;
+  }
+  .branch-arm.left { right: calc(50% + 22px); width: 40px; }
+  .branch-arm.right { left: calc(50% + 22px); width: 40px; }
+
+  /* ── Wide card (spans both sides) ── */
+  .wide-card {
+    position: relative; z-index: 1;
+    max-width: 800px;
+    margin: 0 auto 28px;
+    border-radius: 14px;
+    padding: 24px 28px;
+  }
+  .wide-card .wc-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .wide-card .wc-title {
+    font-size: 20px; font-weight: 800; margin-bottom: 6px;
+  }
+  .wide-card .wc-desc {
+    font-size: 13px; color: #8a9ab5; line-height: 1.6;
+  }
+
+  /* ── Clay table view ── */
+  .clay-table {
+    background: rgba(0,0,0,0.3); border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+    overflow: hidden; margin-top: 14px;
+  }
+  .clay-table .ct-header {
+    background: rgba(30,58,95,0.3);
+    padding: 8px 14px;
+    font-size: 11px; font-weight: 700; color: #5b9bd5;
+    letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .clay-table .ct-row {
+    display: flex; padding: 6px 14px;
+    border-top: 1px solid rgba(255,255,255,0.03);
+    font-size: 11px;
+  }
+  .clay-table .ct-row:nth-child(even) { background: rgba(0,0,0,0.15); }
+  .ct-field { flex: 1; color: #5a6a80; }
+  .ct-value { flex: 2; color: #a0b0c8; }
+  .ct-source {
+    flex: 0 0 auto;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+    padding: 2px 8px; border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .ct-source.zi { background: #1a1030; color: #a78bfa; }
+  .ct-source.dh { background: #0a2018; color: #4ecca3; }
+  .ct-source.web { background: #201508; color: #e8985a; }
+  .ct-source.clay { background: #0f1a30; color: #5b9bd5; }
+  .ct-source.sf { background: #0f1a30; color: #5b9bd5; }
+
+  /* ── Decision diamond ── */
+  .decision {
+    position: relative; z-index: 1;
+    display: flex; justify-content: center;
+    margin: 8px 0 28px;
+  }
+  .diamond {
+    width: 160px; padding: 14px 10px;
+    background: #111827; border: 2px solid var(--c, #e8b84a);
+    border-radius: 10px;
+    text-align: center;
+    transform: none;
+  }
+  .diamond .d-question {
+    font-size: 12px; font-weight: 700; color: var(--c, #e8b84a);
+  }
+  .decision-branches {
+    display: flex; justify-content: center; gap: 80px;
+    margin-top: 12px;
+  }
+  .d-branch {
+    text-align: center;
+    font-size: 11px; color: #5a6a80;
+  }
+  .d-branch .d-answer {
+    font-size: 12px; font-weight: 800;
+    margin-bottom: 2px;
+  }
+  .d-branch .d-answer.yes { color: #4ade80; }
+  .d-branch .d-answer.no { color: #f87171; }
+
+  /* ── Option cards ── */
+  .options-row {
+    display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;
+  }
+  .opt-card {
+    flex: 1; min-width: 140px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px; padding: 14px 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .opt-card .opt-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+    text-transform: uppercase; color: #5a6a80; margin-bottom: 4px;
+  }
+  .opt-card .opt-title {
+    font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 4px;
+  }
+  .opt-card .opt-desc {
+    font-size: 11px; color: #6a7a90; line-height: 1.4;
+  }
+  .opt-card.preferred { border-color: #2e5a3e; }
+  .opt-card.preferred .opt-label { color: #4ade80; }
+  .opt-card.alt { border-color: #3a3020; }
+  .opt-card.alt .opt-label { color: #e8b84a; }
+
+  /* ── Dropdowns ── */
+  details { margin-top: 12px; border-radius: 8px; overflow: hidden; }
+  summary {
+    cursor: pointer; font-size: 12px; font-weight: 700; color: #8a9ab5;
+    padding: 8px 14px; background: rgba(0,0,0,0.25); border-radius: 8px;
+    list-style: none; display: flex; align-items: center; gap: 6px;
+    user-select: none;
+  }
+  summary:hover { background: rgba(0,0,0,0.4); }
+  summary::before { content: '\25B8'; font-size: 10px; transition: transform 0.2s; }
+  details[open] > summary::before { transform: rotate(90deg); }
+  summary::-webkit-details-marker { display: none; }
+  .dd-body {
+    padding: 12px 14px; background: rgba(0,0,0,0.15);
+    font-size: 12px; line-height: 1.65; color: #8a9ab5;
+    border-radius: 0 0 8px 8px;
+  }
+  .dd-body strong { color: #c8d0e0; }
+  .dd-body ul { padding-left: 16px; margin-top: 4px; }
+  .dd-body li { margin-bottom: 3px; }
+
+  /* ── Callout ── */
+  .callout {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px 14px;
+    margin-top: 10px; font-size: 11px; line-height: 1.5;
+    border-left: 3px solid var(--c, #e8b84a);
+  }
+  .callout .c-icon { font-size: 14px; flex-shrink: 0; }
+
+  /* ── Responsive ── */
+  @media (max-width: 760px) {
+    .node-left, .node-right { padding-left: 16px !important; padding-right: 16px !important; }
+    .flow-canvas { padding: 0 16px 60px; }
+    .wide-card { margin-left: 8px; margin-right: 8px; }
+    .options-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Glytec AI SDR &mdash; Data Flow</h1>
+  <div class="sub">How a hospital record becomes a qualified, personalized outreach &mdash; every step, every table, every decision.</div>
+  <span class="badge">V1 Release &mdash; Week of Feb 22, 2026</span>
+</div>
+
+<div class="flow-canvas">
+<div class="spine"></div>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  PHASE 1: DATA ENTERS CLAY               -->
+<!-- ══════════════════════════════════════════ -->
+
+<div class="phase" style="--c:#5b9bd5;">
+  <div style="flex:1;"></div>
+  <div class="phase-dot"></div>
+  <div style="flex:1;">
+    <span class="phase-label">Phase 1 &mdash; Data Enters Clay</span>
+  </div>
+</div>
+
+<!-- Node: ZoomInfo + DH + Scraping arrive -->
+<div class="node">
+  <div class="branch-arm left" style="--c:#a78bfa;"></div>
+  <div class="branch-arm right" style="--c:#4ecca3;"></div>
+  <div class="node-row">
+    <div class="node-left">
+      <div class="node-title" style="color:#a78bfa;">ZoomInfo</div>
+      <div class="node-desc">Bulk enrichment by domain + ICP title keywords. Returns <strong>verified emails, phones, titles, LinkedIn URLs</strong>. Primary source for Tier 1 &amp; 2 Decision Makers.</div>
+      <div class="callout" style="--c:#a78bfa;"><span class="c-icon">&#9888;</span> 60K credits expire March 12. Use them or lose them.</div>
+    </div>
+    <div class="node-center">
+      <div class="node-icon" style="--c:#5b9bd5;">&#9883;</div>
+    </div>
+    <div class="node-right">
+      <div class="node-title" style="color:#4ecca3;">Definitive Healthcare</div>
+      <div class="node-desc">HospitalView Commercial API pulls <strong>facility demographics, EHR/technology, financials, CMS quality, news &amp; intelligence, RFPs, executive contacts</strong> &mdash; all keyed by Definitive ID. Email quality is poor &mdash; ZI overwrites.</div>
+      <details>
+        <summary>What the HospitalView API delivers &amp; how it maps to the infrastructure</summary>
+        <div class="dd-body">
+          The Commercial API exposes HospitalView data via GET and POST endpoints, all keyed by Definitive ID. Every capability below maps directly to a piece of the GTM infrastructure.
+          <ul>
+            <li><strong>Enterprise Account Segmentation</strong> &mdash; staffedBeds, hospitalType (Short Term Acute Care, etc.), ownership (Voluntary Nonprofit, Investor-Owned), academicMedicalCenter, traumaCenter level, firmType. <strong>&rarr; Powers segment assignment</strong> (Enterprise/Strategic vs Commercial), bed-weighted scoring (20% of account score), and facility-level targeting.</li>
+            <li><strong>Network / IDN Hierarchy</strong> &mdash; networkId, networkName, networkParentId, networkParentName, networkOwnership, affiliated facilities. <strong>&rarr; Powers parent/child account mapping.</strong> One API call returns every facility under a health system &mdash; critical for IDN-level selling where a champion at one hospital opens doors across the network.</li>
+            <li><strong>Technology Install (EHR)</strong> &mdash; vendor, product, vendorStatus (Installed Vendor), implementationYear, technology category. <strong>&rarr; Powers EHR-segmented messaging.</strong> Epic shops get the &ldquo;DIY calculator liability&rdquo; angle. Cerner shops get the &ldquo;Oracle transition risk&rdquo; angle. MEDITECH shops get the &ldquo;modernization&rdquo; angle. This is Layer 2 of the 3-layer message composition.</li>
+            <li><strong>Executive Contacts</strong> &mdash; standardizedTitle, positionLevel (C-Level, VP, Director), department, primaryEmail, directPhone, linkedinProfileURL, executiveId. <strong>&rarr; Feeds the contact enrichment pipeline.</strong> DH provides facility-level leadership mapped by Definitive ID. Email quality is poor (ZoomInfo overwrites), but titles, departments, and LinkedIn URLs are high-value for ICP matching.</li>
+            <li><strong>Quality &amp; Hospital Compare Signals</strong> &mdash; readmissionPenalty, VBP Adjustment, HAC Rate Penalty, CMS star ratings. These are the <strong>Hospital Compare-related objects</strong> exposed in the API. <strong>&rarr; Powers CMS quality scoring</strong> (15% of account score) and the &ldquo;CMS is publicly reporting your glycemic harm outcomes&rdquo; messaging angle. Hospitals with active penalties are higher-urgency targets.</li>
+            <li><strong>Financials</strong> &mdash; staffedBeds, numEmployees, number of discharges, operating margin. <strong>&rarr; Powers the financial health matrix.</strong> Unprofitable facilities (55.9% of universe) get ROI-led messaging ($20K/bed savings). Profitable facilities get CMS quality-led messaging. This is Layer 3 of the 3-layer message composition.</li>
+            <li><strong>News &amp; Intelligence</strong> &mdash; intelligenceType (M&amp;A, Affiliations/Partnerships, Clinical Trials/Research, Leadership Changes), publicationDate, newsEventTitle, bodyOfArticle. <strong>&rarr; Powers trigger-based outbound timing.</strong> An EHR migration announcement = receptive moment for the &ldquo;don't build a DIY calculator&rdquo; message. A new CNO = new evaluation cycle = buying window. These signals feed into Clay to trigger personalized sequences at the moment of maximum receptivity.</li>
+            <li><strong>RFPs &amp; Certificates of Need</strong> &mdash; type (Request for Proposal), category (Technology Services, Real Estate, Construction), classification (Solicitation, Certificate of Need), datePosted, dateDue, contact info. <strong>&rarr; Another trigger signal source.</strong> Technology RFPs and new-build Certificates of Need signal active buying cycles. Construction/renovation = new units = new deployment opportunities.</li>
+            <li><strong>Memberships</strong> &mdash; GPO, ACO affiliations by type and subtype. <strong>&rarr; Useful for network-level targeting</strong> and understanding purchasing dynamics (GPO contracts may influence vendor selection).</li>
+          </ul>
+          <strong>API supports both GET and POST.</strong> Properties are queryable &mdash; we can filter by hospitalType, state, vendor, networkParentId, etc. This means we can programmatically pull just the accounts that match our target criteria rather than processing the entire universe.
+        </div>
+      </details>
+    </div>
+  </div>
+</div>
+
+<div class="node">
+  <div class="branch-arm left" style="--c:#e8985a;"></div>
+  <div class="branch-arm right" style="--c:#7eb8f7;"></div>
+  <div class="node-row">
+    <div class="node-left">
+      <div class="node-title" style="color:#e8985a;">Web Scraping</div>
+      <div class="node-desc">Firecrawl hits hospital leadership pages. <strong>Clinical titles live here</strong> &mdash; CDCES, nurse educators, clinical pharmacists. ZoomInfo can't see them. Perplexity fills signal gaps (press releases, strategic announcements).</div>
+      <details>
+        <summary>How Firecrawl &amp; Perplexity fill signal gaps (with examples)</summary>
+        <div class="dd-body">
+          <strong>Firecrawl &mdash; structured scraping of hospital websites</strong>
+          <ul>
+            <li><strong>Leadership directories:</strong> Scrapes /about/leadership or /our-team pages to pull names, titles, and credentials for clinical roles (Diabetes Educator, Clinical Pharmacy Director, Nurse Manager &mdash; Endocrine Unit) that don't exist in ZoomInfo or DH.</li>
+            <li><strong>Service line pages:</strong> Hits /services/endocrinology or /programs/diabetes-management to confirm whether a facility has a dedicated glycemic management program &mdash; a key receptivity signal.</li>
+            <li><strong>News/press rooms:</strong> Scrapes /newsroom or /press-releases for EHR migration announcements, new unit openings, or executive hires that DH News hasn't picked up yet.</li>
+            <li><strong>Job postings:</strong> Scrapes career pages for open endocrinology or clinical informatics roles &mdash; a facility hiring for these positions signals an active investment in glycemic care.</li>
+          </ul>
+          <strong>Perplexity &mdash; AI-powered research for unstructured signals</strong><br>
+          <em style="color:#e8b84a;">Note: Claygent can substitute for Perplexity in all of these use cases.</em>
+          <ul>
+            <li><strong>"Has [Hospital] announced an EHR migration in the last 6 months?"</strong> &mdash; Synthesizes across press releases, trade publications, and news sites that Firecrawl would need multiple targeted URLs to cover.</li>
+            <li><strong>"Who is the Chief Nursing Officer at [Hospital]?"</strong> &mdash; Finds the answer even when the hospital website doesn't have a clean leadership page, by cross-referencing LinkedIn, conference speaker bios, and press quotes.</li>
+            <li><strong>"Does [Health System] have a glycemic management committee or insulin safety initiative?"</strong> &mdash; Surfaces published quality reports, patient safety committee mentions, and conference presentations that indicate existing awareness of glycemic management.</li>
+            <li><strong>"What recent CMS penalties or quality concerns affect [Hospital]?"</strong> &mdash; Aggregates CMS data, news coverage, and patient safety reports into a single answer &mdash; useful when the DH quality data lags behind real-time events.</li>
+            <li><strong>"Has [Health System] made any strategic announcements about diabetes or endocrinology programs?"</strong> &mdash; Catches expansion plans, partnership announcements, or grant-funded initiatives that signal budget allocation toward glycemic care.</li>
+          </ul>
+          <strong>When to use which:</strong> Firecrawl when you know the URL and want structured extraction. Perplexity (or Claygent) when the signal could live anywhere and you need AI to find and synthesize it.
+        </div>
+      </details>
+    </div>
+    <div class="node-center">
+      <div class="node-icon" style="--c:#5b9bd5;">&#8595;</div>
+    </div>
+    <div class="node-right">
+      <div class="node-title" style="color:#7eb8f7;">Clay's Own Enrichment</div>
+      <div class="node-desc">On top of external sources, Clay runs its own waterfall &mdash; <strong>email-finding services, third-party data providers, enrichment validation</strong>. Fills remaining gaps and cross-checks conflicts.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Wide card: What the Clay table looks like at this point -->
+<div class="wide-card" style="background: linear-gradient(135deg, #0f1a30, #0c1424); border: 1px solid #1e3a5f;">
+  <div class="wc-label" style="color:#5b9bd5;">Clay &mdash; Raw Contacts Table (pre-wash)</div>
+  <div class="wc-title" style="color:#5b9bd5;">What the data looks like at this stage</div>
+  <div class="wc-desc">Every source dumps into the same Clay table. Fields overlap, duplicates exist, some emails are unverified. This is the messy reality before the washing machine runs.</div>
+
+  <div class="clay-table">
+    <div class="ct-header">&#9776; &nbsp;contacts_raw &mdash; sample row</div>
+    <div class="ct-row"><span class="ct-field">name</span><span class="ct-value">Sarah Chen, MSN, RN</span><span class="ct-source web">Scraping</span></div>
+    <div class="ct-row"><span class="ct-field">title</span><span class="ct-value">Chief Nursing Officer</span><span class="ct-source zi">ZoomInfo</span></div>
+    <div class="ct-row"><span class="ct-field">email</span><span class="ct-value">s.chen@memorialhealth.org</span><span class="ct-source zi">ZoomInfo</span></div>
+    <div class="ct-row"><span class="ct-field">phone</span><span class="ct-value">(404) 555-0142</span><span class="ct-source zi">ZoomInfo</span></div>
+    <div class="ct-row"><span class="ct-field">linkedin</span><span class="ct-value">linkedin.com/in/sarah-chen-cno</span><span class="ct-source web">Scraping</span></div>
+    <div class="ct-row"><span class="ct-field">facility_def_id</span><span class="ct-value">DH-104827</span><span class="ct-source dh">DH</span></div>
+    <div class="ct-row"><span class="ct-field">ehr_vendor</span><span class="ct-value">Epic</span><span class="ct-source dh">DH</span></div>
+    <div class="ct-row"><span class="ct-field">beds</span><span class="ct-value">842</span><span class="ct-source dh">DH</span></div>
+    <div class="ct-row"><span class="ct-field">signal</span><span class="ct-value">"Memorial Health announces Epic migration Q1 2026"</span><span class="ct-source dh">DH News</span></div>
+    <div class="ct-row"><span class="ct-field">email_verified</span><span class="ct-value" style="color:#e8b84a;">pending</span><span class="ct-source clay">Clay</span></div>
+    <div class="ct-row"><span class="ct-field">duplicate_of</span><span class="ct-value" style="color:#e8b84a;">possible: row #47 (same domain + name)</span><span class="ct-source clay">Clay</span></div>
+  </div>
+
+  <details>
+    <summary>What happens when sources conflict</summary>
+    <div class="dd-body">
+      <strong>Merge rules (Clay enforces):</strong>
+      <ul>
+        <li><strong>Email:</strong> ZoomInfo wins (highest verification rate) &gt; Clay validation &gt; DH &gt; scraping</li>
+        <li><strong>Phone:</strong> ZoomInfo &gt; DH</li>
+        <li><strong>Title:</strong> Most specific wins ("VP, Clinical Informatics" beats "VP")</li>
+        <li><strong>Facility:</strong> DH Definitive ID is authoritative</li>
+        <li><strong>LinkedIn URL:</strong> Whichever source provides it first</li>
+      </ul>
+    </div>
+  </details>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  PHASE 2: WASHING MACHINE                 -->
+<!-- ══════════════════════════════════════════ -->
+
+<div class="phase" style="--c:#7eb8f7;">
+  <div style="flex:1; text-align:right; padding-right:16px;">
+    <span class="phase-label">Phase 2 &mdash; Contact Washing Machine</span>
+  </div>
+  <div class="phase-dot"></div>
+  <div style="flex:1;"></div>
+</div>
+
+<!-- Step 1: Dedup -->
+<div class="node">
+  <div class="branch-arm right" style="--c:#7eb8f7;"></div>
+  <div class="node-row">
+    <div class="node-left">
+      <div class="node-desc" style="color:#5a6a80; font-size:11px;">WASH STEP 1 of 6</div>
+    </div>
+    <div class="node-center">
+      <div class="node-icon" style="--c:#1e3a5f; font-size:14px;">1</div>
+    </div>
+    <div class="node-right">
+      <div class="node-title" style="color:#7eb8f7;">Dedup &amp; Merge</div>
+      <div class="node-desc">Match keys checked in order: <strong>email &rarr; LinkedIn URL &rarr; name + Definitive ID &rarr; name + domain</strong>. Duplicates collapse into a single golden record using merge rules above.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 2: Email Validation -->
+<div class="node">
+  <div class="branch-arm left" style="--c:#7eb8f7;"></div>
+  <div class="node-row">
+    <div class="node-left">
+      <div class="node-title" style="color:#7eb8f7;">Email Validation</div>
+      <div class="node-desc">NeverBounce / ZeroBounce waterfall. <strong>Invalid = never enters a sequence.</strong> Catch-all domains flagged but not excluded.</div>
+    </div>
+    <div class="node-center">
+      <div class="node-icon" style="--c:#1e3a5f; font-size:14px;">2</div>
+    </div>
+    <div class="node-right">
+      <div class="node-desc" style="color:#5a6a80; font-size:11px;">WASH STEP 2 of 6</div>
+    </div>
+  </div>
+</div>
+
+<!-- Decision: Valid email? -->
+<div class="decision" style="--c:#e8b84a;">
+  <div class="diamond">
+    <div class="d-question">Email valid?</div>
+  </div>
+</div>
+<div class="decision-branches">
+  <div class="d-branch">
+    <div class="d-answer yes">&#10003; Valid</div>
+    <div>Continues to step 3</div>
+  </div>
+  <div class="d-branch">
+    <div class="d-answer no">&#10007; Invalid</div>
+    <div>Flagged. LinkedIn-only if URL exists.<br>Never enters email sequence.</div>
+  </div>
+</div>
+
+<!-- Step 3: Suppression Check -->
+<div class="node" style="margin-top:24px;">
+  <div class="branch-arm right" style="--c:#7eb8f7;"></div>
+  <div class="node-row">
+    <div class="node-left">
+      <div class="node-desc" style="color:#5a6a80; font-size:11px;">WASH STEP 3 of 6</div>
+    </div>
+    <div class="node-center">
+      <div class="node-icon" style="--c:#1e3a5f; font-size:14px;">3</div>
+    </div>
+    <div class="node-right">
+      <div class="node-title" style="color:#7eb8f7;">Suppression Check</div>
+      <div class="node-desc">Checked against: <strong>current customers, active opps, competitors, opt-outs, do-not-contact flags</strong>. Suppressed contacts are flagged (not deleted &mdash; audit trail matters) but never enter a sequence.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Decision: Suppressed? -->
+<div class="decision" style="--c:#f87171;">
+  <div class="diamond" style="border-color:#f87171;">
+    <div class="d-question" style="color:#f87171;">Suppressed?</div>
+  </div>
+</div>
+<div class="decision-branches">
+  <div class="d-branch">
+    <div class="d-answer yes" style="color:#4ade80;">&#10003; Clear</div>
+    <div>Continues to step 4</div>
+  </div>
+  <div class="d-branch">
+    <div class="d-answer no" style="color:#f87171;">&#10007; Suppressed</div>
+    <div>Flagged &mdash; on record for audit trail.<br>Never enters a sequence.</div>
+  </div>
+</div>
+
+<!-- Step 4: LinkedIn Cross-Ref -->
+<div class="node" style="margin-top:24px;">
+  <div class="branch-arm left" style="--c:#7eb8f7;"></div>
+  <div class="node-row">
+    <div class="node-left">
+      <div class="node-title" style="color:#7eb8f7;">LinkedIn Cross-Reference</div>
+      <div class="node-desc">Check every contact against their LinkedIn profile. <strong>New title? Different company? &rarr; Flagged as stale.</strong> Prevents outreach to people who've moved on. If LinkedIn shows a better title, we update the record.</div>
+    </div>
+    <div class="node-center">
+      <div class="node-icon" style="--c:#1e3a5f; font-size:14px;">4</div>
+    </div>
+    <div class="node-right">
+      <div class="node-desc" style="color:#5a6a80; font-size:11px;">WASH STEP 4 of 6</div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 5: ICP Match -->
+<div class="node">
+  <div class="branch-arm right" style="--c:#7eb8f7;"></div>
+  <div class="node-row">
+    <div class="node-left">
+      <div class="node-desc" style="color:#5a6a80; font-size:11px;">WASH STEP 5 of 6</div>
+    </div>
+    <div class="node-center">
+      <div class="node-icon" style="--c:#1e3a5f; font-size:14px;">5</div>
+    </div>
+    <div class="node-right">
+      <div class="node-title" style="color:#7eb8f7;">ICP Title Match</div>
+      <div class="node-desc">Fuzzy-match against <strong>66 ICP titles</strong>. Each match assigns: Decision Maker vs Influencer, Clinical vs Business, job level. <strong>Non-matching titles &rarr; manual review queue.</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 6: Account Mapping -->
+<div class="node" style="margin-top:24px;">
+  <div class="branch-arm left" style="--c:#7eb8f7;"></div>
+  <div class="node-row">
+    <div class="node-left">
+      <div class="node-title" style="color:#7eb8f7;">Account Mapping</div>
+      <div class="node-desc">Links contact to correct Salesforce account via <strong>Definitive ID + parent/child hierarchy</strong>. Handles IDN structures &mdash; one contact at a specific hospital within a larger health system.</div>
+    </div>
+    <div class="node-center">
+      <div class="node-icon" style="--c:#1e3a5f; font-size:14px;">6</div>
+    </div>
+    <div class="node-right">
+      <div class="node-desc" style="color:#5a6a80; font-size:11px;">WASH STEP 6 of 6</div>
+    </div>
+  </div>
+</div>
+
+<!-- Post-wash: clean record -->
+<div class="wide-card" style="background: linear-gradient(135deg, #0a1a14, #0c1a18); border: 1px solid #1e4a2a;">
+  <div class="wc-label" style="color:#4ade80;">Clay &mdash; Clean Contacts Table (post-wash)</div>
+  <div class="wc-title" style="color:#4ade80;">Golden record &mdash; ready for Salesforce</div>
+  <div class="wc-desc">Same contact, now deduplicated, validated, matched to ICP, and mapped to the correct account. This is what pushes to Salesforce.</div>
+
+  <div class="clay-table">
+    <div class="ct-header" style="background:rgba(30,74,42,0.3); color:#4ade80;">&#9745; &nbsp;contacts_clean &mdash; golden record</div>
+    <div class="ct-row"><span class="ct-field">name</span><span class="ct-value">Sarah Chen, MSN, RN</span></div>
+    <div class="ct-row"><span class="ct-field">title</span><span class="ct-value">Chief Nursing Officer</span></div>
+    <div class="ct-row"><span class="ct-field">email</span><span class="ct-value">s.chen@memorialhealth.org</span></div>
+    <div class="ct-row"><span class="ct-field">email_verified</span><span class="ct-value" style="color:#4ade80;">true</span></div>
+    <div class="ct-row"><span class="ct-field">linkedin_fresh</span><span class="ct-value" style="color:#4ade80;">true &mdash; title matches, same org</span></div>
+    <div class="ct-row"><span class="ct-field">icp_category</span><span class="ct-value">Decision Maker</span></div>
+    <div class="ct-row"><span class="ct-field">function_type</span><span class="ct-value">Clinical</span></div>
+    <div class="ct-row"><span class="ct-field">sf_account_id</span><span class="ct-value">001Xx000003ABC &mdash; Memorial Health System</span></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  PHASE 3: INTO SALESFORCE                 -->
+<!-- ══════════════════════════════════════════ -->
+
+<div class="phase" style="--c:#5b9bd5;">
+  <div style="flex:1;"></div>
+  <div class="phase-dot"></div>
+  <div style="flex:1;">
+    <span class="phase-label">Phase 3 &mdash; Clean Data Lands in Salesforce</span>
+  </div>
+</div>
+
+<div class="wide-card" style="background: linear-gradient(135deg, #101828, #0c1424); border: 1px solid #2e4a7a;">
+  <div class="wc-label" style="color:#5b9bd5;">System of Record</div>
+  <div class="wc-title" style="color:#5b9bd5;">Salesforce</div>
+  <div class="wc-desc">Clean records push from Clay. Account records carry scoring and signals. Contact records carry the golden data. Nothing unvalidated gets here.</div>
+
+  <div class="callout" style="--c:#e8b84a;">
+    <span class="c-icon">&#9888;</span>
+    <span><strong>Setup dependency:</strong> Salesforce config requires Bryce (operations). Jeremy builds the data pipeline &mdash; Bryce handles SF admin, field creation, permission sets, workflow rules.</span>
+  </div>
+
+  <div class="options-row">
+    <div class="opt-card">
+      <div class="opt-label">Account Object</div>
+      <div class="opt-title">Account Records</div>
+      <div class="opt-desc">Definitive ID, segment, score (0&ndash;100), tier, EHR vendor, beds, margin, CMS stars, latest signal, assigned rep. Most fields sourced from HospitalView API via Clay.</div>
+    </div>
+    <div class="opt-card">
+      <div class="opt-label">Contact Object</div>
+      <div class="opt-title">Contact Records</div>
+      <div class="opt-desc">Email (golden), title, ICP category, function type, facility ID, LinkedIn URL, enrichment source, validated flag</div>
+    </div>
+  </div>
+
+  <details>
+    <summary>What triggers the push from Clay to Salesforce</summary>
+    <div class="dd-body">
+      <strong>Two workflows push data:</strong>
+      <ul>
+        <li><strong>Account Enrichment &amp; Scoring (Workflow 1):</strong> Triggered when a new account is added to the target list or on monthly re-score cycle. Pulls DH data, computes score, checks suppression, pushes to SF.</li>
+        <li><strong>Contact Enrichment Waterfall (Workflow 2):</strong> Triggered when an account scores Priority or Active AND contact coverage is below 15. Runs the full waterfall + wash, pushes clean contacts to SF.</li>
+      </ul>
+    </div>
+  </details>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  PHASE 4: SCORING → SEQUENCING DECISION   -->
+<!-- ══════════════════════════════════════════ -->
+
+<div class="phase" style="--c:#b57edc;">
+  <div style="flex:1; text-align:right; padding-right:16px;">
+    <span class="phase-label">Phase 4 &mdash; Score, Route, Sequence</span>
+  </div>
+  <div class="phase-dot"></div>
+  <div style="flex:1;"></div>
+</div>
+
+<!-- Account Scoring -->
+<div class="node">
+  <div class="branch-arm right" style="--c:#b57edc;"></div>
+  <div class="node-row">
+    <div class="node-left">
+      <div class="node-desc" style="color:#5a6a80; font-size:11px;">COMPUTED IN CLAY, STORED IN SALESFORCE</div>
+    </div>
+    <div class="node-center">
+      <div class="node-icon" style="--c:#3a2660;">&#9733;</div>
+    </div>
+    <div class="node-right">
+      <div class="node-title" style="color:#b57edc;">Account Scoring</div>
+      <div class="node-desc">6-factor weighted model: bed count (20%), operating margin (15%), EHR vendor (20%), CMS quality (15%), active trigger signal (20%), contact coverage (10%). <strong>5 of 6 factors come directly from the HospitalView API.</strong> Score determines what happens next.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Decision: Score tier -->
+<div class="decision" style="--c:#b57edc;">
+  <div class="diamond" style="border-color:#b57edc;">
+    <div class="d-question" style="color:#b57edc;">Account score tier?</div>
+  </div>
+</div>
+
+<div class="wide-card" style="background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.06); padding:16px 20px;">
+  <div class="options-row" style="margin-top:0;">
+    <div class="opt-card preferred">
+      <div class="opt-label">80&ndash;100</div>
+      <div class="opt-title">Priority</div>
+      <div class="opt-desc">Immediate sequence entry. Full personalization. Clayton reviews every message.</div>
+    </div>
+    <div class="opt-card preferred">
+      <div class="opt-label">60&ndash;79</div>
+      <div class="opt-title">Active</div>
+      <div class="opt-desc">Sequence entry within 1 week. Standard personalization.</div>
+    </div>
+    <div class="opt-card alt">
+      <div class="opt-label">40&ndash;59</div>
+      <div class="opt-title">Nurture</div>
+      <div class="opt-desc">Lower-touch drip. Revisit when new signal fires.</div>
+    </div>
+    <div class="opt-card" style="border-color:#1a1520;">
+      <div class="opt-label" style="color:#5a4060;">&lt; 40</div>
+      <div class="opt-title" style="color:#8a7a9a;">Monitor</div>
+      <div class="opt-desc">No outreach. Re-score monthly.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  PHASE 5: SALESFORGE                      -->
+<!-- ══════════════════════════════════════════ -->
+
+<div class="phase" style="--c:#b57edc; margin-top:12px;">
+  <div style="flex:1;"></div>
+  <div class="phase-dot"></div>
+  <div style="flex:1;">
+    <span class="phase-label">Phase 5 &mdash; Contacts Enter Salesforge</span>
+  </div>
+</div>
+
+<div class="wide-card" style="background: linear-gradient(135deg, #150f24, #110c1e); border: 1px solid #3a2660;">
+  <div class="wc-label" style="color:#b57edc;">Sequencing Engine</div>
+  <div class="wc-title" style="color:#b57edc;">Salesforge</div>
+  <div class="wc-desc">Priority and Active contacts push from Salesforce into Salesforge sequences. API over UI &mdash; everything is programmatic.</div>
+
+  <details>
+    <summary>How the Salesforge + Warmforge APIs work (programmatic operations)</summary>
+    <div class="dd-body">
+      Two APIs, one platform. Both called via <strong>Claude Code scripts or Datagen SDK</strong> &mdash; never through the UI.
+      <strong style="color:#e2e8f0; display:block; margin-top:10px;">Salesforge API &mdash; Outbound:</strong>
+      <ul>
+        <li><strong>Push contacts into sequences</strong> &mdash; <code>PUT /sequences/{id}/import-lead</code> creates + enrolls in one call (preferred), or <code>POST /contacts/bulk</code> then <code>PUT /sequences/{id}/contacts</code> to assign by ID. Contact model has 8 fields only &mdash; <code>jobTitle</code> doesn&rsquo;t persist, use <code>customVars</code> instead.</li>
+        <li><strong>Create &amp; manage sequences</strong> &mdash; <code>POST /sequences</code> to create (requires <code>productId</code>, <code>language: "american_english"</code>, <code>timezone</code>). <code>PUT /sequences/{id}</code> only updates name and tracking flags &mdash; ignores steps/mailboxes. <code>PUT /sequences/{id}/steps</code> is a separate endpoint for email content (replaces all steps).</li>
+        <li><strong>Assign warmed mailboxes</strong> &mdash; <code>PUT /sequences/{id}/mailboxes</code> assigns Clayton&rsquo;s or Reagan&rsquo;s warmed inbox to a sequence. <strong>Must be PUT, not POST</strong> (POST &rarr; 404). Only mailboxes with &ldquo;warm&rdquo; status from Warmforge get assigned.</li>
+        <li><strong>Sync DNC lists</strong> &mdash; <code>POST /dnc/bulk</code> pushes suppressed contacts from Clay. Body: <code>{"dncs": ["email"]}</code> &mdash; array of strings, not objects.</li>
+        <li><strong>Pull sequence metrics</strong> &mdash; <code>GET /sequences/{id}/analytics</code> (requires <code>from_date</code> + <code>to_date</code> query params) and <code>GET /sequence-metrics</code> (workspace-level aggregates) return sent/opened/replied/bounced counts. Feeds the reporting layer.</li>
+        <li><strong>Capture events via webhooks</strong> &mdash; <code>POST /integrations/webhooks</code> (NOT <code>/webhooks</code>) registers listeners for 10 event types: email_sent, email_opened, link_clicked, email_replied, linkedin_replied, contact_unsubscribed, email_bounced, positive_reply, negative_reply, label_changed. Events flow back to Datagen for auto-pause logic and to Salesforce for activity tracking.</li>
+        <li><strong>Handle replies</strong> &mdash; <code>GET /threads</code> lists conversation threads with replyType (<code>ooo</code>, <code>lead_replied</code>). Programmatic reply not supported via API &mdash; replies are manual in V1.</li>
+      </ul>
+      <strong style="color:#e2e8f0; display:block; margin-top:14px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08);">Warmforge API &mdash; Deliverability:</strong>
+      <ul>
+        <li><strong>Connect inboxes</strong> &mdash; <code>POST /mailboxes/connect-oauth2</code> for Gmail/Outlook. Clayton and Reagan&rsquo;s dedicated inboxes onboard here.</li>
+        <li><strong>Monitor warmup progress</strong> &mdash; <code>GET /mailboxes/{address}/warmup/stats</code> returns daily sent/reply/spam counts by provider. Inbox must hit &ldquo;warm&rdquo; status before entering any sequence.</li>
+        <li><strong>Run placement tests</strong> &mdash; <code>POST /placement-tests</code> sends test emails to seed addresses. <code>GET /placement-tests/{id}</code> returns inbox vs spam counts by provider (Gmail, Outlook, etc.). Run before every campaign launch.</li>
+        <li><strong>Track reputation</strong> &mdash; <code>GET /mailboxes/{address}</code> returns DNS health data and reputation scores. If reputation drops, mailbox is pulled from sequences automatically.</li>
+      </ul>
+      <strong>Execution path:</strong> Claude Code scripts call these APIs directly (REST + API key), or Datagen SDK wraps them as tool executions. Either way, zero manual UI interaction.
+    </div>
+  </details>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  PHASE 6: MESSAGE COMPOSITION              -->
+<!-- ══════════════════════════════════════════ -->
+
+<div class="phase" style="--c:#4ade80;">
+  <div style="flex:1; text-align:right; padding-right:16px;">
+    <span class="phase-label">Phase 6 &mdash; AI Composes the Message</span>
+  </div>
+  <div class="phase-dot"></div>
+  <div style="flex:1;"></div>
+</div>
+
+<div class="node">
+  <div class="branch-arm left" style="--c:#4ade80;"></div>
+  <div class="branch-arm right" style="--c:#4ade80;"></div>
+  <div class="node-row">
+    <div class="node-left">
+      <div class="node-title" style="color:#4ade80;">Inputs Gathered</div>
+      <div class="node-desc">
+        <strong>From Salesforce:</strong> account data (beds, EHR, margin), trigger signal, contact ICP data<br>
+        <strong>From knowledge base:</strong> Magnetic Messaging framework, proof points, objection handling
+      </div>
+    </div>
+    <div class="node-center">
+      <div class="node-icon" style="--c:#1e4a2a;">&#9998;</div>
+    </div>
+    <div class="node-right">
+      <div class="node-title" style="color:#4ade80;">3-Layer Composition</div>
+      <div class="node-desc">
+        <strong>Layer 1:</strong> Persona tier selects framing (CNO = safety, CFO = ROI)<br>
+        <strong>Layer 2:</strong> EHR vendor selects lead angle (Epic = DIY liability, Cerner = transition risk) &mdash; <em style="color:#4ecca3;">via DH</em><br>
+        <strong>Layer 3:</strong> Financial health selects urgency (unprofitable = ROI, profitable = CMS quality) &mdash; <em style="color:#4ecca3;">via DH</em>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="node">
+  <div class="branch-arm right" style="--c:#4ade80;"></div>
+  <div class="node-row">
+    <div class="node-left">
+      <div class="node-desc" style="color:#5a6a80; font-size:11px;">AI + HUMAN REVIEW</div>
+    </div>
+    <div class="node-center">
+      <div class="node-icon" style="--c:#1e4a2a;">&#10003;</div>
+    </div>
+    <div class="node-right">
+      <div class="node-title" style="color:#4ade80;">Personalized Hook + Human Approval</div>
+      <div class="node-desc">AI writes signal-based opening line: <em>"Saw Memorial Health's Epic migration announcement..."</em> + account-specific proof points. <strong>Clayton or Reagan reviews before send (V1).</strong> At 100 contacts, this is manageable. V2+ shifts to spot-checking.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  PHASE 7: OUTREACH SEQUENCE                -->
+<!-- ══════════════════════════════════════════ -->
+
+<div class="phase" style="--c:#4ade80;">
+  <div style="flex:1;"></div>
+  <div class="phase-dot"></div>
+  <div style="flex:1;">
+    <span class="phase-label">Phase 7 &mdash; Outreach Sequence Runs</span>
+  </div>
+</div>
+
+<div class="wide-card" style="background: linear-gradient(135deg, #0c1a12, #0a1410); border: 1px solid #1e4a2a;">
+  <div class="wc-label" style="color:#4ade80;">Salesforge &mdash; Multi-Channel Sequence</div>
+  <div class="wc-title" style="color:#4ade80;">The 10-day outreach arc</div>
+
+  <div class="options-row">
+    <div class="opt-card preferred" style="border-color:#1e4a2a;">
+      <div class="opt-label" style="color:#4ade80;">Day 0</div>
+      <div class="opt-title">Email 1</div>
+      <div class="opt-desc">Cold email. Signal-based hook + primary pain angle. Full personalization.</div>
+    </div>
+    <div class="opt-card preferred" style="border-color:#1e4a2a;">
+      <div class="opt-label" style="color:#4ade80;">Day 3</div>
+      <div class="opt-title">Email 2</div>
+      <div class="opt-desc">Different angle, same pain. New proof point or case study.</div>
+    </div>
+    <div class="opt-card" style="border-color:#1a2a3a;">
+      <div class="opt-label" style="color:#5b9bd5;">Day 5</div>
+      <div class="opt-title">LinkedIn</div>
+      <div class="opt-desc">Connection request via Clayton/Reagan profile. Only if LinkedIn URL exists.</div>
+    </div>
+    <div class="opt-card preferred" style="border-color:#1e4a2a;">
+      <div class="opt-label" style="color:#4ade80;">Day 7</div>
+      <div class="opt-title">Email 3</div>
+      <div class="opt-desc">Direct CTA + case study link. Final email push.</div>
+    </div>
+    <div class="opt-card" style="border-color:#1a2a3a;">
+      <div class="opt-label" style="color:#5b9bd5;">Day 10</div>
+      <div class="opt-title">LinkedIn</div>
+      <div class="opt-desc">Follow-up message if connection accepted. Brief, conversational.</div>
+    </div>
+  </div>
+
+  <div class="callout" style="--c:#f87171; margin-top:14px;">
+    <span class="c-icon">&#9632;</span>
+    <span><strong>Kill switch:</strong> Bounce &gt;5% or spam &gt;0.3% in any 24-hour window &rarr; all sequences auto-pause. Monitored via <strong>Salesforge webhooks + Warmforge placement tests</strong>. Auto-pause logic runs on <strong>Datagen.dev</strong>.</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  PHASE 8: REPORTING + FEEDBACK LOOP        -->
+<!-- ══════════════════════════════════════════ -->
+
+<div class="phase" style="--c:#e8b84a;">
+  <div style="flex:1; text-align:right; padding-right:16px;">
+    <span class="phase-label">Phase 8 &mdash; Visibility + Feedback Loop</span>
+  </div>
+  <div class="phase-dot"></div>
+  <div style="flex:1;"></div>
+</div>
+
+<div class="wide-card" style="background: linear-gradient(135deg, #161210, #12100e); border: 1px solid #4a3a20;">
+  <div class="wc-label" style="color:#e8b84a;">Reporting &mdash; No Black Boxes</div>
+  <div class="wc-title" style="color:#e8b84a;">Where each metric comes from</div>
+
+  <div class="options-row">
+    <div class="opt-card" style="border-color:#3a2660;">
+      <div class="opt-label" style="color:#b57edc;">From Salesforge</div>
+      <div class="opt-title">Outbound Metrics</div>
+      <div class="opt-desc">Emails sent, opened, replied, bounced per campaign. Exported from Salesforge.</div>
+    </div>
+    <div class="opt-card" style="border-color:#2e4a7a;">
+      <div class="opt-label" style="color:#5b9bd5;">From Salesforce</div>
+      <div class="opt-title">Contact Coverage</div>
+      <div class="opt-desc">Contacts enriched per account vs. 15+ target. Coverage by segment. Reported in Salesforce.</div>
+    </div>
+    <div class="opt-card" style="border-color:#3a2660;">
+      <div class="opt-label" style="color:#b57edc;">Salesforge + Datagen</div>
+      <div class="opt-title">Deliverability Health</div>
+      <div class="opt-desc">Bounce rate, spam complaints, open rate, unsubs. Data from Salesforge. Auto-pause logic requires Datagen.dev.</div>
+    </div>
+    <div class="opt-card" style="border-color:#4a3a20;">
+      <div class="opt-label" style="color:#e8b84a;">SF + Salesforge + Datagen</div>
+      <div class="opt-title">Pipeline Attribution</div>
+      <div class="opt-desc">Which AI SDR contacts generated meetings. Signal &rarr; outreach &rarr; response correlation. Requires all three systems.</div>
+    </div>
+  </div>
+
+  <details>
+    <summary>The feedback loop</summary>
+    <div class="dd-body">
+      This isn't a one-way pipeline. Response data flows back and refines everything upstream:
+      <ul>
+        <li><strong>Open/reply rates by segment</strong> &rarr; refine which EHR &times; pain &times; persona combos work best</li>
+        <li><strong>Bounce data</strong> &rarr; feeds back to Clay suppression list (auto-flag invalid emails)</li>
+        <li><strong>Meeting conversion by signal type</strong> &rarr; refine which DH triggers predict receptivity</li>
+        <li><strong>Opt-outs</strong> &rarr; immediate sync to Salesforce &rarr; Clay suppression &rarr; contact never re-enters</li>
+      </ul>
+      Pat gets the dashboard. Clayton gets the feedback loop. Same data, different views.
+    </div>
+  </details>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  BOTTOM: Next Steps                        -->
+<!-- ══════════════════════════════════════════ -->
+
+<div class="phase" style="--c:#fff; margin-top:12px;">
+  <div style="flex:1;"></div>
+  <div class="phase-dot"></div>
+  <div style="flex:1;">
+    <span class="phase-label" style="color:#fff;">What Happens Next</span>
+  </div>
+</div>
+
+<div class="wide-card" style="background:#111827; border:1px solid #1e293b; text-align:center;">
+  <div class="wc-title" style="color:#fff;">Three things need to land</div>
+  <div class="wc-desc" style="max-width:600px; margin:0 auto;">V1 ships week of Feb 22, 2026. Outbound campaigns go live soon after. These are the gates:</div>
+  <div class="options-row" style="margin-top:14px;">
+    <div class="opt-card" style="border-color:#2e4a7a; text-align:center;">
+      <div class="opt-label" style="color:#5b9bd5;">1</div>
+      <div class="opt-title">Campaign details from Clayton</div>
+      <div class="opt-desc">Accounts, messaging, sequencing</div>
+    </div>
+    <div class="opt-card" style="border-color:#2e4a7a; text-align:center;">
+      <div class="opt-label" style="color:#5b9bd5;">2</div>
+      <div class="opt-title">Inboxes warmed + validated</div>
+      <div class="opt-desc">Deliverability confirmed</div>
+    </div>
+    <div class="opt-card" style="border-color:#2e4a7a; text-align:center;">
+      <div class="opt-label" style="color:#5b9bd5;">3</div>
+      <div class="opt-title">First 10 accounts through the pipe</div>
+      <div class="opt-desc">Washing machine &rarr; SF &rarr; Salesforge</div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center; margin-top:40px; font-size:11px; color:#334155;">
+  Glytec AI SDR &mdash; V1 Data Flow &mdash; Phase 1 Foundation
+</div>
+
+</div><!-- /flow-canvas -->
+</body>
+</html>

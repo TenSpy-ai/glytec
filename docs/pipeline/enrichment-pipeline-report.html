@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glytec AI SDR — DH Contact Enrichment Pipeline Report</title>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --card: #111827;
+    --border: #1e293b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #3b82f6;
+    --accent2: #8b5cf6;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --cyan: #06b6d4;
+    --pink: #ec4899;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 3rem;
+  }
+  .header h1 {
+    font-size: 2.2rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+  }
+  .header .subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .header .datestamp {
+    margin-top: 1rem;
+    color: var(--cyan);
+    font-size: 0.85rem;
+  }
+
+  /* Big numbers row */
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+  .hero-stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-stat::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .hero-stat.green::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+  .hero-stat.amber::before { background: linear-gradient(90deg, var(--amber), var(--red)); }
+  .hero-stat.pink::before { background: linear-gradient(90deg, var(--pink), var(--accent2)); }
+  .hero-stat .number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .hero-stat .label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 0.25rem;
+  }
+  .hero-stat .detail {
+    font-size: 0.7rem;
+    color: var(--accent);
+    margin-top: 0.5rem;
+  }
+
+  /* Section */
+  section { margin-bottom: 3rem; }
+  section h2 {
+    font-size: 1.3rem;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  section h2 .badge {
+    font-size: 0.65rem;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  h3 {
+    font-size: 1rem;
+    color: var(--accent2);
+    margin: 1.5rem 0 0.75rem;
+  }
+  h4 {
+    font-size: 0.85rem;
+    color: var(--cyan);
+    margin: 1rem 0 0.5rem;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.8rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+  }
+  tr:hover td { background: rgba(59, 130, 246, 0.05); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.mono { font-family: inherit; color: var(--cyan); font-size: 0.75rem; }
+  td.green { color: var(--green); }
+  td.amber { color: var(--amber); }
+  td.red { color: var(--red); }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .card-title {
+    font-size: 0.9rem;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-title .tag {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    background: rgba(139, 92, 246, 0.2);
+    color: var(--accent2);
+  }
+
+  /* Progress bars */
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+  }
+  .progress-label { width: 180px; color: var(--muted); flex-shrink: 0; }
+  .progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    display: block;
+    min-width: 0;
+  }
+  .progress-fill {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s;
+  }
+  .progress-value { width: 80px; text-align: right; color: var(--text); flex-shrink: 0; }
+
+  /* File tree */
+  .file-tree {
+    font-size: 0.8rem;
+    line-height: 1.8;
+    padding: 1rem;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .file-tree .dir { color: var(--accent); }
+  .file-tree .file { color: var(--muted); }
+  .file-tree .highlight { color: var(--green); font-weight: 600; }
+  .file-tree a { color: inherit; text-decoration: none; }
+  .file-tree a:hover { text-decoration: underline; color: var(--cyan); }
+
+  /* Code blocks */
+  code {
+    font-family: inherit;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    color: var(--cyan);
+  }
+  pre {
+    background: rgba(0,0,0,0.4);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.75rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+
+  /* Two-column layout */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 900px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  /* Recipe card */
+  .recipe-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+  .recipe-card .recipe-num {
+    position: absolute;
+    top: -12px;
+    left: 1rem;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.6rem;
+    border-radius: 4px;
+  }
+  .recipe-card .recipe-name {
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+  .recipe-card .recipe-desc {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+  .recipe-card .recipe-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .recipe-card .recipe-meta span {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* Annotation */
+  .annotation {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 0.5rem;
+  }
+
+  /* Link list */
+  .link-list {
+    list-style: none;
+    font-size: 0.8rem;
+  }
+  .link-list li {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    display: flex;
+    justify-content: space-between;
+  }
+  .link-list .path { color: var(--cyan); }
+  .link-list .desc { color: var(--muted); }
+
+  /* Waterfall / timeline */
+  .timeline {
+    position: relative;
+    padding-left: 2rem;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -1.75rem;
+    top: 1.2rem;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    border: 2px solid var(--bg);
+  }
+  .timeline-item .time {
+    font-size: 0.7rem;
+    color: var(--accent);
+    margin-bottom: 0.25rem;
+  }
+  .timeline-item .event {
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+  .timeline-item .detail {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 0.25rem;
+  }
+
+  /* Schema table */
+  .schema-table th:first-child { width: 200px; }
+  .schema-table td:first-child {
+    color: var(--green);
+    font-weight: 500;
+  }
+  .schema-table td:nth-child(2) {
+    color: var(--amber);
+    font-size: 0.75rem;
+  }
+
+  /* Tag cloud */
+  .tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 1rem 0;
+  }
+  .tag-cloud .tag {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .tag-cloud .tag.dm { background: rgba(16, 185, 129, 0.15); color: var(--green); border-color: rgba(16, 185, 129, 0.3); }
+  .tag-cloud .tag.inf { background: rgba(245, 158, 11, 0.15); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+
+  .footnote {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ═══════════════════════════════════════════ HEADER ═══════════════════════════════════════════ -->
+<div class="header">
+  <h1>DH Contact Enrichment Pipeline</h1>
+  <div class="subtitle">Glytec AI SDR &mdash; Definitive Healthcare HospitalView API &rarr; Enterprise Contact Database</div>
+  <div class="datestamp">Run completed February 20, 2026 &nbsp;&bull;&nbsp; 10.6 hours wall-clock (5:15 PM &rarr; 3:48 AM CT) &nbsp;&bull;&nbsp; 38,175 API calls</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ HERO STATS ═══════════════════════════════════════ -->
+<div class="hero-stats">
+  <div class="hero-stat">
+    <div class="number">156,080</div>
+    <div class="label">Executives</div>
+    <div class="detail">59.5% with email &bull; 90.9% with LinkedIn</div>
+  </div>
+  <div class="hero-stat green">
+    <div class="number">17,557</div>
+    <div class="label">ICP-Matched</div>
+    <div class="detail">11.2% match rate across 12 title categories</div>
+  </div>
+  <div class="hero-stat pink">
+    <div class="number">252,016</div>
+    <div class="label">Physicians</div>
+    <div class="detail">112,237 unique NPIs &bull; 82.6% with Medicare data</div>
+  </div>
+  <div class="hero-stat amber">
+    <div class="number">301,510</div>
+    <div class="label">Trigger Signals</div>
+    <div class="detail">Leadership changes, M&amp;A, EHR migrations, news</div>
+  </div>
+  <div class="hero-stat">
+    <div class="number">105,131</div>
+    <div class="label">Enrichments</div>
+    <div class="detail">Quality, financial, membership, penalty records</div>
+  </div>
+  <div class="hero-stat green">
+    <div class="number">3,949</div>
+    <div class="label">Facilities</div>
+    <div class="detail">296 parent systems &bull; Enterprise/Strategic tier</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ TABLE OF CONTENTS ════════════════════════════════ -->
+<section>
+  <h2>Table of Contents</h2>
+  <div class="card" style="columns: 2; column-gap: 2rem; font-size: 0.8rem; line-height: 2.2;">
+    <div>1. <a href="#sources" style="color: var(--cyan);">Data Sources &amp; Inputs</a></div>
+    <div>2. <a href="#file-map" style="color: var(--cyan);">File Map &amp; Navigation</a></div>
+    <div>3. <a href="#recipes" style="color: var(--cyan);">Recipe Breakdown (5 executed)</a></div>
+    <div>4. <a href="#all-recipes" style="color: var(--cyan);">Full Recipe Catalog (all 10)</a></div>
+    <div>5. <a href="#icp" style="color: var(--cyan);">ICP Matching System</a></div>
+    <div>6. <a href="#api" style="color: var(--cyan);">DH API Client &amp; Endpoints</a></div>
+    <div>7. <a href="#schema" style="color: var(--cyan);">Database Schema (all fields)</a></div>
+    <div>8. <a href="#exec-data" style="color: var(--cyan);">Executive Data Deep Dive</a></div>
+    <div>9. <a href="#phys-data" style="color: var(--cyan);">Physician Data Deep Dive</a></div>
+    <div>10. <a href="#signals" style="color: var(--cyan);">Trigger Signals &amp; Enrichment</a></div>
+    <div>11. <a href="#timeline" style="color: var(--cyan);">Execution Timeline</a></div>
+    <div>12. <a href="#infra" style="color: var(--cyan);">Infrastructure &amp; API Stats</a></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ 1. DATA SOURCES ══════════════════════════════════ -->
+<section id="sources">
+  <h2>1. Data Sources &amp; Inputs <span class="badge">Origins</span></h2>
+
+  <h3>A. CSV Data Files (Static — loaded at run start)</h3>
+  <table>
+    <thead>
+      <tr><th>File</th><th>Records</th><th>Key Fields</th><th>Role in Pipeline</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="mono">data/AI SDR_Facility List_1.23.26.csv</td>
+        <td class="num">8,458</td>
+        <td>Definitive ID, Hospital Name, Highest Level Parent, Hospital Type, EHR, ICU Beds, Staffed Beds, Net Operating Profit Margin, State, City</td>
+        <td>Master facility list. The <code>Definitive ID</code> is the join key to all DH API calls. EHR vendor, bed counts, margins, and hospital type drive recipe filtering and prioritization.</td>
+      </tr>
+      <tr>
+        <td class="mono">data/AI SDR_Parent Account List_1.23.26.csv</td>
+        <td class="num">1,683</td>
+        <td>System Name, Segment, Rank, Adj Total $ Opp, SFDC Account ID, Glytec Client status</td>
+        <td>Defines the 296 Enterprise/Strategic parent systems (minus 54 current clients = 242 targets). Segment + Rank drive prioritization. Dollar opportunity sizes inform outreach priority.</td>
+      </tr>
+      <tr>
+        <td class="mono">data/AI SDR_Facility List_Supplemental Data_1.23.26.csv</td>
+        <td class="num">5,475</td>
+        <td>Definitive ID, Assigned Rep, additional clinical detail</td>
+        <td>Maps facilities to sales rep territories for Recipe 7 (Geo/Territory). Links via Definitive ID.</td>
+      </tr>
+      <tr>
+        <td class="mono">data/AI SDR_ICP Titles_2.12.26.csv</td>
+        <td class="num">66</td>
+        <td>Department, Title, Category, Intent Score, Function Type, Job Level</td>
+        <td>The 66 Ideal Customer Profile titles that define who we want to reach. Drives the ICP matching engine in every recipe.</td>
+      </tr>
+      <tr>
+        <td class="mono">outbound/ICP.json</td>
+        <td class="num">66</td>
+        <td>Same as CSV, in JSON format</td>
+        <td>Machine-readable ICP data, loaded by <code>icp_matcher.py</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>B. Definitive Healthcare HospitalView API (Live — called during execution)</h3>
+  <div class="card">
+    <div class="card-title">
+      API Configuration
+      <span class="tag">LIVE DATA</span>
+    </div>
+    <table>
+      <tr><td style="width:200px; color: var(--muted);">Base URL</td><td><code>https://api-data.defhc.com</code></td></tr>
+      <tr><td style="color: var(--muted);">Authentication</td><td><code>Authorization: ApiKey {DH_API_KEY}</code> (no Bearer prefix)</td></tr>
+      <tr><td style="color: var(--muted);">Pagination</td><td><code>page[size]</code> + <code>page[offset]</code> (1-indexed, max 500)</td></tr>
+      <tr><td style="color: var(--muted);">Rate strategy</td><td>5 concurrent workers per recipe, exponential backoff on 429/5xx</td></tr>
+      <tr><td style="color: var(--muted);">Total calls made</td><td><strong>38,175</strong> across all recipes</td></tr>
+      <tr><td style="color: var(--muted);">Avg response time</td><td>3,545 ms (~3.5 seconds)</td></tr>
+      <tr><td style="color: var(--muted);">Error rate</td><td>568 timeouts (1.5%), 0 HTTP 4xx/5xx errors</td></tr>
+      <tr><td style="color: var(--muted);">Retries</td><td>305 calls retried (599 total retry attempts)</td></tr>
+    </table>
+  </div>
+
+  <h3>C. Reference Documentation</h3>
+  <table>
+    <thead><tr><th>Document</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="mono">docs/definitive-hc/contact-enrichment-reference.md</td>
+        <td>1,750+ line comprehensive reference for the DH API — endpoints, fields, operators, gotchas, 10 recipe patterns. Written from live API testing. The bible for this pipeline.</td>
+      </tr>
+      <tr>
+        <td class="mono">docs/salesforge/salesforge-api-rules.md</td>
+        <td>Definitive field-level rules for Salesforge (downstream target for contacts). Tested every endpoint.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════ 2. FILE MAP ══════════════════════════════════════ -->
+<section id="file-map">
+  <h2>2. File Map &amp; Navigation <span class="badge">Repository</span></h2>
+  <div class="file-tree">
+<span class="dir">enrichment/</span>                              &larr; All enrichment pipeline code + data
+├── <span class="highlight">dh_client.py</span>                     &larr; DH API HTTP client (auth, pagination, retries, logging)
+├── <span class="highlight">db.py</span>                            &larr; SQLite schema + connection management (8 tables)
+├── <span class="highlight">icp_matcher.py</span>                   &larr; ICP title matching engine (66 titles + 2 synthetic)
+├── <span class="highlight">runner.py</span>                        &larr; CLI orchestrator (--recipe, --scope, --live, --status)
+├── <span class="file">__init__.py</span>
+├── <span class="dir">recipes/</span>                          &larr; One Python module per recipe
+│   ├── <span class="file">recipe01_full_extract.py</span>      Full contact extraction (single hospital)
+│   ├── <span class="file">recipe02_icp_match.py</span>         ICP-targeted executive discovery
+│   ├── <span class="file">recipe03_network_map.py</span>       Leadership change detection (network-wide)
+│   ├── <span class="file">recipe04_tiered_discovery.py</span>  Tiered discovery using Parent Account List
+│   ├── <span class="file">recipe05_ehr_segmented.py</span>     EHR-vendor-segmented contact discovery
+│   ├── <span class="file">recipe06_financial_distress.py</span> Financial distress + CMS quality penalties
+│   ├── <span class="file">recipe07_geo_territory.py</span>     Geographic / rep territory contacts
+│   ├── <span class="file">recipe08_physician_champion.py</span> Physician champion pipeline (endocrine, hospitalist)
+│   ├── <span class="file">recipe09_account_bundle.py</span>    Comprehensive account enrichment (quality, financial, membership)
+│   └── <span class="file">recipe10_every_contact.py</span>     Exhaustive per-company extraction
+├── <span class="dir">data/</span>
+│   └── <span class="highlight">enrichment.db</span>               &larr; <strong>THE DATABASE</strong> — all 814,737+ records
+└── <span class="dir">logs/</span>                             &larr; Timestamped run logs
+    ├── <span class="file">run_13_recipe04_*.log</span>         6.3 MB — R4 tiered discovery
+    ├── <span class="file">run_18_recipe08_*.log</span>         2.4 MB — R8 physician champions
+    ├── <span class="file">run_19_recipe09_*.log</span>         132 KB — R9 account enrichment
+    ├── <span class="file">run_20_recipe06_*.log</span>         213 KB — R6 financial distress
+    └── <span class="file">run_21_recipe03_*.log</span>         94 KB  — R3 leadership changes
+
+<span class="dir">data/</span>                                     &larr; Source CSV files
+├── <span class="file">AI SDR_Facility List_1.23.26.csv</span>              8,458 facilities
+├── <span class="file">AI SDR_Parent Account List_1.23.26.csv</span>        1,683 parent systems
+├── <span class="file">AI SDR_Facility List_Supplemental Data_1.23.26.csv</span>  5,475 facilities with rep assignments
+└── <span class="file">AI SDR_ICP Titles_2.12.26.csv</span>                 66 ICP titles
+
+<span class="dir">docs/definitive-hc/</span>                      &larr; DH API documentation
+├── <span class="highlight">contact-enrichment-reference.md</span>  1,750+ line API reference (the recipe bible)
+└── <span class="file">*.md</span>                              API testing notes, gotchas
+
+<span class="dir">.claude/skills/</span>                           &larr; Claude Code skills for on-demand enrichment
+├── <span class="dir">dh-contacts/SKILL.md</span>             /dh-contacts — Recipes 1, 2, 8, 10
+├── <span class="dir">dh-accounts/SKILL.md</span>             /dh-accounts — Recipes 4, 5, 6
+└── <span class="dir">dh-signals/SKILL.md</span>              /dh-signals  — Recipes 3, 7, 9
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ 3. EXECUTED RECIPES ══════════════════════════════ -->
+<section id="recipes">
+  <h2>3. Executed Recipes — What Ran <span class="badge">5 of 10</span></h2>
+
+  <table>
+    <thead>
+      <tr><th>Recipe</th><th>Facilities</th><th>Duration</th><th>Primary Output</th><th>Volume</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>R4</strong> Tiered Contacts</td>
+        <td class="num">4,251 / 4,251</td>
+        <td class="num">10.5h</td>
+        <td>Executives + ICP matching</td>
+        <td class="num">156,080 execs (17,557 ICP)</td>
+        <td class="green">COMPLETE</td>
+      </tr>
+      <tr>
+        <td><strong>R8</strong> Physician Champions</td>
+        <td class="num">1,387 / 1,387</td>
+        <td class="num">7.3h</td>
+        <td>Physicians (endo, hospitalist, IM, med directors)</td>
+        <td class="num">252,016 physicians</td>
+        <td class="green">COMPLETE</td>
+      </tr>
+      <tr>
+        <td><strong>R9</strong> Account Enrichment</td>
+        <td class="num">4,249 / 4,251</td>
+        <td class="num">6.1h</td>
+        <td>Quality, financial, membership data</td>
+        <td class="num">105,131 records</td>
+        <td class="green">COMPLETE</td>
+      </tr>
+      <tr>
+        <td><strong>R3</strong> Leadership Changes</td>
+        <td class="num">4,251 / 4,251</td>
+        <td class="num">5.9h</td>
+        <td>Trigger signals</td>
+        <td class="num">301,510 signals</td>
+        <td class="green">COMPLETE</td>
+      </tr>
+      <tr>
+        <td><strong>R6</strong> Financial Distress</td>
+        <td class="num">1,189 / 1,189</td>
+        <td class="num">5.9h</td>
+        <td>Contacts at negative-margin hospitals + penalties</td>
+        <td class="num">2,993 contacts + 1,819 penalties</td>
+        <td class="green">COMPLETE</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="annotation">All 5 recipes ran concurrently (5:15 PM &rarr; 3:48 AM CT). Each used 5 ThreadPoolExecutor workers. Recipes crashed and auto-resumed multiple times due to SQLite lock contention during concurrent writes — all eventually completed with 0 data loss thanks to resume/skip logic.</p>
+
+  <!-- Recipe 4 Detail -->
+  <div class="recipe-card">
+    <span class="recipe-num">R4</span>
+    <div class="recipe-name">Tiered Contact Discovery</div>
+    <div class="recipe-desc">
+      Uses the Parent Account List to prioritize systems by segment and dollar opportunity.
+      Processes every facility within each target parent system. For each facility, runs 11 DH API
+      executive searches (C-Suite, Pharmacy, Nursing, Quality, Safety, Informatics, Critical Care,
+      Surgery, Endocrinology, Diabetes, Hospital Medicine), deduplicates results, then runs ICP
+      matching to tag the 66 target titles.
+    </div>
+    <div class="recipe-meta">
+      <span>Scope: Enterprise/Strategic</span>
+      <span>242 parent systems</span>
+      <span>4,251 facilities</span>
+      <span>~11 API calls/facility</span>
+      <span>ThreadPoolExecutor(5)</span>
+    </div>
+    <h4>Method</h4>
+    <ol style="font-size: 0.8rem; padding-left: 1.5rem; line-height: 2;">
+      <li>Load Parent Account List CSV &rarr; filter to Segment = "Enterprise/Strategic", exclude Glytec clients</li>
+      <li>Sort by <code>Adj Total $ Opp</code> descending (highest opportunity first)</li>
+      <li>For each system, get all facilities from Facility List CSV via <code>Highest Level Parent</code> join</li>
+      <li>Skip facilities already in <code>executives</code> table (resume support)</li>
+      <li>For each facility, call <code>icp_discover_hospital()</code> which runs 11 filtered executive searches</li>
+      <li>Store all executives in DB, run ICP matcher, tag matches with title/score/category</li>
+    </ol>
+    <h4>DH API Endpoints</h4>
+    <pre>POST /v1/hospitals/{def_id}/executives/search   (11× per facility, one per ICP search batch)
+  Batch filters:
+    C-Suite:       positionLevel Equals "C-Level"
+    Pharmacy:      department Contains "Pharm"
+    Nursing:       department Contains "Nurs"
+    Quality:       department Contains "Quality"
+    Safety:        department Contains "Safety"
+    Informatics:   department Contains "Informati"
+    Critical Care: department Contains "Critical"
+    Surgery:       department Contains "Surg"
+    Endocrinology: standardizedTitle Contains "Endocrin"
+    Diabetes:      standardizedTitle Contains "Diabetes"
+    Hospital Med:  standardizedTitle Contains "Hospital"</pre>
+    <h4>Fields Collected → <code>executives</code> table</h4>
+    <table class="schema-table">
+      <tr><th>Category</th><th>Fields</th></tr>
+      <tr><td>Identity</td><td>person_id, executive_id, first_name, last_name, prefix, suffix, credentials, gender</td></tr>
+      <tr><td>Role</td><td>standardized_title, title, department, position_level</td></tr>
+      <tr><td>Contact</td><td>primary_email, direct_email, direct_phone, location_phone, mobile_phone, linkedin_url</td></tr>
+      <tr><td>Clinical</td><td>physician_flag, physician_leader, executive_npi</td></tr>
+      <tr><td>ICP Match</td><td>icp_matched, icp_title, icp_department, icp_category, icp_intent_score, icp_function_type, icp_job_level</td></tr>
+      <tr><td>Context</td><td>facility_name, parent_system, hospital_type, ehr_vendor, segment, definitive_id</td></tr>
+    </table>
+  </div>
+
+  <!-- Recipe 3 Detail -->
+  <div class="recipe-card">
+    <span class="recipe-num">R3</span>
+    <div class="recipe-name">Network Leadership Change Detection</div>
+    <div class="recipe-desc">
+      Scans every facility in target parent systems for recently updated executives (since Dec 2025).
+      Leadership changes = trigger signals for outreach timing. Also pulls news articles about
+      leadership, M&amp;A, EHR migrations, new facilities, and financial distress.
+    </div>
+    <div class="recipe-meta">
+      <span>Scope: Enterprise/Strategic</span>
+      <span>4,251 facilities</span>
+      <span>301,510 signals found</span>
+      <span>ThreadPoolExecutor(5)</span>
+    </div>
+    <h4>Method</h4>
+    <ol style="font-size: 0.8rem; padding-left: 1.5rem; line-height: 2;">
+      <li>Get all target parent system names from Parent Account List CSV</li>
+      <li>For each system, get all facilities from Facility List CSV</li>
+      <li>Skip facilities already in <code>trigger_signals</code> table (resume support)</li>
+      <li>For each facility, search executives with <code>lastUpdatedDate &gt; 2025-12-01</code></li>
+      <li>Store each recently-updated executive as a "leadership_change" trigger signal</li>
+    </ol>
+    <h4>DH API Endpoints</h4>
+    <pre>POST /v1/hospitals/{def_id}/executives/search
+  Filter: lastUpdatedDate GreaterThan "2025-12-01"</pre>
+    <h4>Fields Collected → <code>trigger_signals</code> table</h4>
+    <table class="schema-table">
+      <tr><td>signal_type</td><td>leadership_change, ehr_migration, m_and_a, affiliation_change, financial_distress, new_facility</td></tr>
+      <tr><td>signal_source</td><td>executive_update, news</td></tr>
+      <tr><td>signal_date</td><td>lastUpdatedDate from DH executive record</td></tr>
+      <tr><td>summary</td><td>"{firstName} {lastName} - {standardizedTitle}"</td></tr>
+      <tr><td>facility_name</td><td>Hospital name from CSV</td></tr>
+    </table>
+  </div>
+
+  <!-- Recipe 6 Detail -->
+  <div class="recipe-card">
+    <span class="recipe-num">R6</span>
+    <div class="recipe-name">Financial Distress + Quality Penalty Contact Discovery</div>
+    <div class="recipe-desc">
+      Pre-filters from CSV for hospitals with negative operating margins AND ICU beds (pain + relevance).
+      Enriches with CMS HAC (Hospital-Acquired Condition) penalties from the API, then pulls
+      ICP-targeted contacts. These hospitals have the most urgent financial reason to adopt Glucommander.
+    </div>
+    <div class="recipe-meta">
+      <span>Scope: Enterprise/Strategic</span>
+      <span>1,189 distressed facilities</span>
+      <span>2,993 contacts</span>
+      <span>1,819 quality penalties</span>
+      <span>ThreadPoolExecutor(5)</span>
+    </div>
+    <h4>Method</h4>
+    <ol style="font-size: 0.8rem; padding-left: 1.5rem; line-height: 2;">
+      <li>Filter Facility List CSV: <code>Net Operating Profit Margin &lt; 0%</code> AND <code>ICU Beds &gt; 0</code></li>
+      <li>Filter to Enterprise/Strategic parent systems (exclude Glytec clients)</li>
+      <li>For each distressed facility: search CMS quality metrics for HAC penalties</li>
+      <li>Store penalty records in <code>account_enrichment</code> table (type = "quality_penalty")</li>
+      <li>Pull ICP-targeted contacts via <code>icp_discover_hospital()</code></li>
+    </ol>
+    <h4>DH API Endpoints</h4>
+    <pre>POST /v1/hospitals/{def_id}/quality/search
+  Filter: name Contains "hacPenalty"
+
+POST /v1/hospitals/{def_id}/executives/search   (11× ICP batches)</pre>
+    <h4>Fields Collected</h4>
+    <p style="font-size: 0.8rem;">Executives → <code>executives</code> table (same as R4). Quality penalties → <code>account_enrichment</code> table: data_type, metric_name, metric_value, numeric_value, year, description.</p>
+  </div>
+
+  <!-- Recipe 8 Detail -->
+  <div class="recipe-card">
+    <span class="recipe-num">R8</span>
+    <div class="recipe-name">Physician Champion Pipeline</div>
+    <div class="recipe-desc">
+      Finds endocrinologists, hospitalists, internists, and medical directors who could champion
+      Glucommander adoption within their hospitals. Filters to SAC (Short Term Acute Care) hospitals
+      with &ge;10 ICU beds. Also checks the executive endpoint for physician leaders.
+    </div>
+    <div class="recipe-meta">
+      <span>Scope: Enterprise/Strategic</span>
+      <span>1,387 ICU facilities</span>
+      <span>252,016 physicians</span>
+      <span>4 specialty searches</span>
+      <span>ThreadPoolExecutor(5)</span>
+    </div>
+    <h4>Method</h4>
+    <ol style="font-size: 0.8rem; padding-left: 1.5rem; line-height: 2;">
+      <li>Filter Facility List: <code>Hospital Type = "Short Term Acute Care Hospital"</code> AND <code>ICU Beds &ge; 10</code></li>
+      <li>Filter to Enterprise/Strategic parent systems (exclude Glytec clients)</li>
+      <li>For each facility, run 4 physician specialty searches + 1 physician leader search</li>
+      <li>Store all physicians in <code>physicians</code> table</li>
+    </ol>
+    <h4>DH API Endpoints</h4>
+    <pre>POST /v1/hospitals/{def_id}/physicians/affiliated/search   (4× per facility)
+  Search 1: primarySpecialty Contains "Endocrinology"
+  Search 2: primarySpecialty Contains "Hospital Medicine"
+  Search 3: primarySpecialty Contains "Internal Medicine"
+  Search 4: role Contains "Medical Director"
+
+POST /v1/hospitals/{def_id}/executives/search   (1× per facility)
+  Filter: physicianLeader True</pre>
+    <h4>Fields Collected → <code>physicians</code> table</h4>
+    <table class="schema-table">
+      <tr><td>Identity</td><td>person_id, npi, first_name, last_name, credentials, gender</td></tr>
+      <tr><td>Clinical</td><td>role, primary_specialty</td></tr>
+      <tr><td>Practice</td><td>primary_practice_city, primary_practice_state, primary_practice_phone</td></tr>
+      <tr><td>Affiliations</td><td>primary_hospital_affiliation, primary_hospital_def_id, secondary_hospital_affiliation, secondary_hospital_def_id</td></tr>
+      <tr><td>Medicare</td><td>medicare_payments, medicare_unique_patients, num_procedures</td></tr>
+      <tr><td>Context</td><td>facility_name, parent_system, definitive_id</td></tr>
+    </table>
+  </div>
+
+  <!-- Recipe 9 Detail -->
+  <div class="recipe-card">
+    <span class="recipe-num">R9</span>
+    <div class="recipe-name">Comprehensive Account Enrichment Bundle</div>
+    <div class="recipe-desc">
+      Pulls quality metrics, financial data, memberships (GPO, ACO, HIE), and news/trigger signals
+      for every target hospital. This is the "account intelligence" layer that doesn't find contacts
+      but enriches each hospital record with data that informs messaging and prioritization.
+    </div>
+    <div class="recipe-meta">
+      <span>Scope: Enterprise/Strategic</span>
+      <span>4,249 facilities</span>
+      <span>105,131 enrichment records</span>
+      <span>4 API calls/facility</span>
+      <span>ThreadPoolExecutor(5)</span>
+    </div>
+    <h4>Method</h4>
+    <ol style="font-size: 0.8rem; padding-left: 1.5rem; line-height: 2;">
+      <li>Filter to Enterprise/Strategic parent systems (exclude Glytec clients)</li>
+      <li>For each facility, pull 4 categories of enrichment data from DH API</li>
+      <li>Filter quality metrics to key names (HAC, readmission, VBP)</li>
+      <li>Filter financial metrics to key names (margin, beds, discharges, IT budget, cash on hand)</li>
+      <li>Pull all memberships (GPO, ACO, CIN, HIE, Payor)</li>
+      <li>Search news for high-value types since June 2025</li>
+    </ol>
+    <h4>DH API Endpoints</h4>
+    <pre>GET /v1/hospitals/{def_id}/quality                    &rarr; CMS quality metrics
+GET /v1/hospitals/{def_id}/financials                  &rarr; 141 financial metrics per hospital
+GET /v1/hospitals/{def_id}/memberships                 &rarr; GPO, ACO, CIN, HIE memberships
+POST /v1/hospitals/{def_id}/newsandintelligence/search &rarr; news filtered to post-June 2025</pre>
+    <h4>Quality Metrics Tracked</h4>
+    <pre>hacPenalty, hacPenaltyAdjustment, readmissionPenalty, vbpAdjustment</pre>
+    <h4>Financial Metrics Tracked</h4>
+    <pre>netOperatingMargin, staffedBeds, discharges, employees, avgLengthOfStay,
+caseMixIndex, bedUtilization, budgetOperatingIT, budgetCapitalIT,
+incomeOperating, cashOnHandDays, badDebtArRatio</pre>
+    <h4>News Signal Types Tracked</h4>
+    <pre>People → leadership_change     |  Information Technology → ehr_migration
+Merger → m_and_a               |  Affiliation → affiliation_change
+Bankruptcy → financial_distress |  New Facility → new_facility</pre>
+    <h4>Fields Collected → <code>account_enrichment</code> table</h4>
+    <table class="schema-table">
+      <tr><td>data_type</td><td>"quality", "financial", "membership"</td></tr>
+      <tr><td>metric_name</td><td>DH metric name (e.g., "hacPenaltyAdjustment_2024")</td></tr>
+      <tr><td>metric_value</td><td>String value from API</td></tr>
+      <tr><td>numeric_value</td><td>Parsed numeric (for sorting/filtering)</td></tr>
+      <tr><td>year</td><td>Data year (most recent available)</td></tr>
+      <tr><td>description</td><td>Metric description or membership subtype</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ 4. FULL RECIPE CATALOG ═══════════════════════════ -->
+<section id="all-recipes">
+  <h2>4. Full Recipe Catalog <span class="badge">all 10</span></h2>
+  <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem;">5 recipes were executed in this run. The remaining 5 are available for on-demand use via Claude Code skills.</p>
+  <table>
+    <thead><tr><th>#</th><th>Recipe</th><th>Purpose</th><th>Input</th><th>Output Tables</th><th>Skill</th><th>Run?</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Full Contact Extraction</td><td>Every contact at a single hospital</td><td><code>--def-id</code></td><td>executives, physicians, rfp_contacts, news_contacts</td><td>/dh-contacts</td><td class="muted">test only</td></tr>
+      <tr><td>2</td><td>ICP-Matched Discovery</td><td>ICP-targeted executives at single hospital</td><td><code>--def-id</code></td><td>executives (with ICP fields)</td><td>/dh-contacts</td><td class="muted">test only</td></tr>
+      <tr style="background: rgba(16,185,129,0.05);"><td>3</td><td>Leadership Changes</td><td>Detect recently-updated executives across all facilities</td><td><code>--scope</code></td><td>trigger_signals</td><td>/dh-signals</td><td class="green"><strong>YES</strong></td></tr>
+      <tr style="background: rgba(16,185,129,0.05);"><td>4</td><td>Tiered Discovery</td><td>ICP-matched contacts across all target facilities</td><td><code>--scope</code></td><td>executives</td><td>/dh-accounts</td><td class="green"><strong>YES</strong></td></tr>
+      <tr><td>5</td><td>EHR-Segmented</td><td>EHR-vendor-specific contact targeting</td><td><code>--scope</code></td><td>executives</td><td>/dh-accounts</td><td class="muted">available</td></tr>
+      <tr style="background: rgba(16,185,129,0.05);"><td>6</td><td>Financial Distress</td><td>Contacts at negative-margin hospitals</td><td><code>--scope</code></td><td>executives, account_enrichment</td><td>/dh-accounts</td><td class="green"><strong>YES</strong></td></tr>
+      <tr><td>7</td><td>Geo/Territory</td><td>Contacts by sales rep territory</td><td><code>--rep</code></td><td>executives</td><td>/dh-signals</td><td class="muted">available</td></tr>
+      <tr style="background: rgba(16,185,129,0.05);"><td>8</td><td>Physician Champions</td><td>Endocrine, hospitalist, IM, med directors</td><td><code>--scope</code></td><td>physicians</td><td>/dh-contacts</td><td class="green"><strong>YES</strong></td></tr>
+      <tr style="background: rgba(16,185,129,0.05);"><td>9</td><td>Account Bundle</td><td>Quality, financial, membership data</td><td><code>--scope</code></td><td>account_enrichment, trigger_signals</td><td>/dh-signals</td><td class="green"><strong>YES</strong></td></tr>
+      <tr><td>10</td><td>Every Contact at Company</td><td>Exhaustive per-system extraction</td><td><code>--parent</code></td><td>all tables</td><td>/dh-contacts</td><td class="muted">available</td></tr>
+    </tbody>
+  </table>
+
+  <h3>CLI Usage</h3>
+  <pre>
+# Run a recipe
+python enrichment/runner.py --recipe 4 --scope enterprise --live --workers 5
+
+# Single hospital
+python enrichment/runner.py --recipe 1 --def-id 2151 --live
+
+# Single parent system
+python enrichment/runner.py --recipe 10 --parent "Tenet Healthcare" --live
+
+# Rep territory
+python enrichment/runner.py --recipe 7 --rep "Khirstyn" --live
+
+# Check status
+python enrichment/runner.py --status
+
+# Dry-run (default — no API calls)
+python enrichment/runner.py --recipe 4 --scope enterprise</pre>
+</section>
+
+<!-- ═══════════════════════════════════════════ 5. ICP MATCHING ══════════════════════════════════ -->
+<section id="icp">
+  <h2>5. ICP Matching System <span class="badge">17,557 matches</span></h2>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">ICP Match Distribution (all 12 matched titles)</div>
+      <div class="progress-row">
+        <span class="progress-label">Director, Pharmacy</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:100%; background: var(--green);"></span></span>
+        <span class="progress-value">4,592</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">CNO</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:51%; background: var(--green);"></span></span>
+        <span class="progress-value">2,341</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">CEO</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:47%; background: var(--green);"></span></span>
+        <span class="progress-value">2,143</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Dir. Inpatient Nursing</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:45%; background: var(--accent);"></span></span>
+        <span class="progress-value">2,080</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">CMO</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:42%; background: var(--green);"></span></span>
+        <span class="progress-value">1,912</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">CFO</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:38%; background: var(--green);"></span></span>
+        <span class="progress-value">1,757</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">COO</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:31%; background: var(--green);"></span></span>
+        <span class="progress-value">1,429</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Chief Pharmacy Officer</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:7%; background: var(--accent2);"></span></span>
+        <span class="progress-value">339</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Chief Compliance Officer</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:6%; background: var(--accent2);"></span></span>
+        <span class="progress-value">280</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">CQO</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:6%; background: var(--accent2);"></span></span>
+        <span class="progress-value">273</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">CMIO</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:5%; background: var(--accent2);"></span></span>
+        <span class="progress-value">223</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Chief Strategy Officer</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:4%; background: var(--accent2);"></span></span>
+        <span class="progress-value">188</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-title">66 ICP Titles by Category</div>
+        <div class="tag-cloud">
+          <span class="tag dm">CEO (95)</span>
+          <span class="tag dm">CNO (95)</span>
+          <span class="tag dm">CMO (90)</span>
+          <span class="tag dm">CFO (90)</span>
+          <span class="tag dm">COO (90)</span>
+          <span class="tag dm">CQO (90)</span>
+          <span class="tag dm">CMIO (90)</span>
+          <span class="tag dm">CSO (85)</span>
+          <span class="tag dm">Dir Clinical Informatics (85)</span>
+          <span class="tag dm">Chief Pharmacy Officer (85)</span>
+          <span class="tag dm">VP Patient Safety (85)</span>
+          <span class="tag dm">Associate CMIO (80)</span>
+          <span class="tag dm">Chief of Critical Care (80)</span>
+          <span class="tag dm">Medical Director, ICU (80)</span>
+          <span class="tag dm">Chief of Endocrinology (80)</span>
+          <span class="tag dm">VP Nursing (80)</span>
+          <span class="tag dm">VP Quality (80)</span>
+          <span class="tag dm">Chief Compliance (75)</span>
+          <span class="tag dm">Chief Data Officer (75)</span>
+          <span class="tag inf">Clinical Informaticist (70)</span>
+          <span class="tag inf">CDCES (70)</span>
+          <span class="tag inf">Diabetes CNS (70)</span>
+          <span class="tag inf">Mgr Diabetes Ed (65)</span>
+          <span class="tag inf">ICU CNS (65)</span>
+          <span class="tag inf">Dir Pharmacy (60)</span>
+          <span class="tag inf">Intensivist (60)</span>
+          <span class="tag inf">ICU QC (60)</span>
+          <span class="tag inf">Hospitalist (55)</span>
+          <span class="tag inf">Endocrinologist (50)</span>
+        </div>
+        <p class="annotation" style="margin-top:0.5rem;">
+          <span style="color: var(--green);">■</span> Decision Maker &nbsp;&nbsp;
+          <span style="color: var(--amber);">■</span> Influencer &nbsp;&nbsp;
+          Numbers = Intent Score (50-95)
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-title">Matching Algorithm</div>
+        <pre style="font-size: 0.7rem; margin: 0;">
+1. Load 66 ICP titles from ICP.json
+2. Add 2 synthetic titles:
+   - Chief Medical Officer (90, Executive)
+   - Chief of Medicine (80, Executive)
+3. For each DH executive:
+   a. Keyword match on standardizedTitle (+60)
+   b. Title word overlap vs ICP title (+40)
+   c. Department match bonus (+20)
+   d. Position level boost (+5-10)
+   e. Score ≥ 50 → match
+4. Explicitly reject non-ICP titles:
+   CIO, CMO→CTO, Chief of Radiology,
+   Pathology, Anesthesia, Emergency,
+   Pediatrics, Psychiatry, Neurology,
+   Chief of Staff, CHRO, CLO, CXO</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ 6. DH API CLIENT ═════════════════════════════════ -->
+<section id="api">
+  <h2>6. DH API Client &amp; Endpoints <span class="badge">dh_client.py</span></h2>
+  <table>
+    <thead><tr><th>Python Method</th><th>HTTP</th><th>DH API Endpoint</th><th>Returns</th><th>Used By</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">get_hospital(def_id)</td><td>GET</td><td class="mono">/v1/hospitals/{id}</td><td>Single hospital object</td><td>R10</td></tr>
+      <tr><td class="mono">search_hospitals(filters)</td><td>POST</td><td class="mono">/v1/hospitals/search</td><td>Hospital list</td><td>R10</td></tr>
+      <tr><td class="mono">get_executives(def_id)</td><td>GET</td><td class="mono">/v1/hospitals/{id}/executives</td><td>All executives (paginated)</td><td>R1</td></tr>
+      <tr><td class="mono">search_executives(def_id, filters)</td><td>POST</td><td class="mono">/v1/hospitals/{id}/executives/search</td><td>Filtered executives</td><td>R2-R7</td></tr>
+      <tr><td class="mono">get_physicians(def_id)</td><td>GET</td><td class="mono">/v1/hospitals/{id}/physicians/affiliated</td><td>All physicians (paginated)</td><td>R1</td></tr>
+      <tr><td class="mono">search_physicians(def_id, filters)</td><td>POST</td><td class="mono">/v1/hospitals/{id}/physicians/affiliated/search</td><td>Filtered physicians</td><td>R8</td></tr>
+      <tr><td class="mono">get_quality(def_id)</td><td>GET</td><td class="mono">/v1/hospitals/{id}/quality</td><td>CMS quality metrics</td><td>R9</td></tr>
+      <tr><td class="mono">search_quality(def_id, filters)</td><td>POST</td><td class="mono">/v1/hospitals/{id}/quality/search</td><td>Filtered quality</td><td>R6</td></tr>
+      <tr><td class="mono">get_financials(def_id)</td><td>GET</td><td class="mono">/v1/hospitals/{id}/financials</td><td>141 financial metrics</td><td>R9</td></tr>
+      <tr><td class="mono">get_memberships(def_id)</td><td>GET</td><td class="mono">/v1/hospitals/{id}/memberships</td><td>GPO, ACO, CIN, HIE</td><td>R9</td></tr>
+      <tr><td class="mono">get_news(def_id)</td><td>GET</td><td class="mono">/v1/hospitals/{id}/newsandintelligence</td><td>News articles</td><td>R1</td></tr>
+      <tr><td class="mono">search_news(def_id, filters)</td><td>POST</td><td class="mono">/v1/hospitals/{id}/newsandintelligence/search</td><td>Filtered news</td><td>R9</td></tr>
+      <tr><td class="mono">get_requests(def_id)</td><td>GET</td><td class="mono">/v1/hospitals/{id}/requests</td><td>RFP procurement</td><td>R1</td></tr>
+      <tr><td class="mono">get_technologies(def_id)</td><td>GET</td><td class="mono">/v1/hospitals/{id}/technologies/currentimplementations</td><td>EHR + tech stack</td><td>R5</td></tr>
+      <tr><td class="mono">get_affiliations(def_id)</td><td>GET</td><td class="mono">/v1/hospitals/{id}/affiliations</td><td>Affiliated facilities</td><td>R10</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════ 7. DATABASE SCHEMA ═══════════════════════════════ -->
+<section id="schema">
+  <h2>7. Database Schema <span class="badge">8 tables</span></h2>
+  <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem;">
+    SQLite at <code>enrichment/data/enrichment.db</code> &mdash; WAL mode, 30s busy timeout, ~280 MB on disk.
+  </p>
+
+  <div class="card">
+    <div class="card-title">executives <span class="tag">156,080 rows</span></div>
+    <table class="schema-table" style="font-size: 0.75rem;">
+      <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>id</td><td>INTEGER PK</td><td>Auto-increment local ID</td></tr>
+        <tr><td>run_id</td><td>INTEGER FK</td><td>Links to runs table</td></tr>
+        <tr><td>definitive_id</td><td>INTEGER</td><td>DH hospital ID (join key to facilities)</td></tr>
+        <tr><td>person_id</td><td>INTEGER</td><td>DH global person identifier</td></tr>
+        <tr><td>executive_id</td><td>INTEGER</td><td>DH executive identifier (dedup key with definitive_id)</td></tr>
+        <tr><td>first_name, last_name</td><td>TEXT</td><td>Name</td></tr>
+        <tr><td>prefix, suffix, credentials</td><td>TEXT</td><td>"Dr.", "Jr.", "MD, MBA"</td></tr>
+        <tr><td>gender</td><td>TEXT</td><td>Male / Female</td></tr>
+        <tr><td>department</td><td>TEXT</td><td>"Pharmacy", "Nursing", "Board", etc.</td></tr>
+        <tr><td>position_level</td><td>TEXT</td><td>C-Level / Vice President / Manager/Director / Other / Board</td></tr>
+        <tr><td>standardized_title</td><td>TEXT</td><td>DH normalized title (input to ICP matcher)</td></tr>
+        <tr><td>title</td><td>TEXT</td><td>Facility-specific title (may differ from standardized)</td></tr>
+        <tr><td>primary_email</td><td>TEXT</td><td>Corporate email — <strong>59.5% coverage</strong></td></tr>
+        <tr><td>direct_email</td><td>TEXT</td><td>Personal email (Gmail/Yahoo — flag as personal, don't cold-email)</td></tr>
+        <tr><td>direct_phone</td><td>TEXT</td><td>Direct line</td></tr>
+        <tr><td>location_phone</td><td>TEXT</td><td>Facility main number</td></tr>
+        <tr><td>mobile_phone</td><td>TEXT</td><td>Cell phone</td></tr>
+        <tr><td>linkedin_url</td><td>TEXT</td><td>LinkedIn profile — <strong>90.9% coverage</strong></td></tr>
+        <tr><td>physician_flag</td><td>BOOLEAN</td><td>Is this person a physician?</td></tr>
+        <tr><td>physician_leader</td><td>BOOLEAN</td><td>Physician in leadership role?</td></tr>
+        <tr><td>executive_npi</td><td>INTEGER</td><td>NPI if physician (~10%)</td></tr>
+        <tr><td>last_updated_date</td><td>TEXT</td><td>When DH last verified this record</td></tr>
+        <tr><td>icp_matched</td><td>BOOLEAN</td><td>1 if matched to one of 66 ICP titles</td></tr>
+        <tr><td>icp_title</td><td>TEXT</td><td>Matched ICP title (e.g., "Chief Nursing Officer (CNO)")</td></tr>
+        <tr><td>icp_department</td><td>TEXT</td><td>ICP department (e.g., "Nursing Leadership")</td></tr>
+        <tr><td>icp_category</td><td>TEXT</td><td>"Decision Maker" or "Influencer"</td></tr>
+        <tr><td>icp_intent_score</td><td>INTEGER</td><td>50-95 score from ICP CSV</td></tr>
+        <tr><td>icp_function_type</td><td>TEXT</td><td>"Clinical" or "Business"</td></tr>
+        <tr><td>icp_job_level</td><td>TEXT</td><td>Executive / Director / Mid-Level / Individual Contributor</td></tr>
+        <tr><td>facility_name</td><td>TEXT</td><td>Hospital name (from CSV)</td></tr>
+        <tr><td>parent_system</td><td>TEXT</td><td>Parent health system (from CSV)</td></tr>
+        <tr><td>hospital_type</td><td>TEXT</td><td>SAC, CAH, LTAC, etc.</td></tr>
+        <tr><td>ehr_vendor</td><td>TEXT</td><td>Epic, Oracle Cerner, MEDITECH, etc.</td></tr>
+        <tr><td>segment</td><td>TEXT</td><td>Enterprise/Strategic or Commercial</td></tr>
+        <tr><td>discovered_at</td><td>TIMESTAMP</td><td>When this record was inserted</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">physicians <span class="tag">252,016 rows</span></div>
+    <table class="schema-table" style="font-size: 0.75rem;">
+      <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>id</td><td>INTEGER PK</td><td>Auto-increment</td></tr>
+        <tr><td>run_id</td><td>INTEGER FK</td><td>Links to runs</td></tr>
+        <tr><td>definitive_id</td><td>INTEGER</td><td>Hospital ID</td></tr>
+        <tr><td>person_id</td><td>INTEGER</td><td>DH person ID</td></tr>
+        <tr><td>npi</td><td>INTEGER</td><td>National Provider Identifier (universal key)</td></tr>
+        <tr><td>first_name, last_name, credentials</td><td>TEXT</td><td>Name + "MD", "DO", etc.</td></tr>
+        <tr><td>role</td><td>TEXT</td><td>"Physician", "Physician & Medical Director", "Hospitalist"</td></tr>
+        <tr><td>gender</td><td>TEXT</td><td>Male / Female</td></tr>
+        <tr><td>primary_specialty</td><td>TEXT</td><td>Full specialty (e.g., "Internal Medicine - Endocrinology")</td></tr>
+        <tr><td>primary_practice_city</td><td>TEXT</td><td>City</td></tr>
+        <tr><td>primary_practice_state</td><td>TEXT</td><td>State</td></tr>
+        <tr><td>primary_practice_phone</td><td>TEXT</td><td>Practice phone — <strong>97.6% coverage</strong></td></tr>
+        <tr><td>primary_hospital_affiliation</td><td>TEXT</td><td>Primary hospital name</td></tr>
+        <tr><td>primary_hospital_def_id</td><td>TEXT</td><td>Primary hospital Definitive ID</td></tr>
+        <tr><td>secondary_hospital_affiliation</td><td>TEXT</td><td>Secondary hospital name (multi-hospital influence)</td></tr>
+        <tr><td>secondary_hospital_def_id</td><td>TEXT</td><td>Secondary hospital Definitive ID</td></tr>
+        <tr><td>medicare_payments</td><td>REAL</td><td>Total Medicare payments — <strong>82.6% coverage</strong></td></tr>
+        <tr><td>medicare_unique_patients</td><td>INTEGER</td><td>Unique Medicare patients seen</td></tr>
+        <tr><td>num_procedures</td><td>INTEGER</td><td>Total procedures performed</td></tr>
+        <tr><td>facility_name, parent_system</td><td>TEXT</td><td>Context from CSV</td></tr>
+        <tr><td>discovered_at</td><td>TIMESTAMP</td><td>Insert timestamp</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">trigger_signals <span class="tag">301,510 rows</span></div>
+      <table class="schema-table" style="font-size: 0.75rem;">
+        <thead><tr><th>Column</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>INTEGER PK</td></tr>
+          <tr><td>run_id</td><td>INTEGER FK</td></tr>
+          <tr><td>definitive_id</td><td>INTEGER</td></tr>
+          <tr><td>signal_type</td><td>TEXT</td></tr>
+          <tr><td>signal_source</td><td>TEXT</td></tr>
+          <tr><td>signal_date</td><td>TEXT</td></tr>
+          <tr><td>summary</td><td>TEXT</td></tr>
+          <tr><td>raw_json</td><td>TEXT</td></tr>
+          <tr><td>facility_name</td><td>TEXT</td></tr>
+          <tr><td>discovered_at</td><td>TIMESTAMP</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">account_enrichment <span class="tag">105,131 rows</span></div>
+      <table class="schema-table" style="font-size: 0.75rem;">
+        <thead><tr><th>Column</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>INTEGER PK</td></tr>
+          <tr><td>run_id</td><td>INTEGER FK</td></tr>
+          <tr><td>definitive_id</td><td>INTEGER</td></tr>
+          <tr><td>data_type</td><td>TEXT</td></tr>
+          <tr><td>metric_name</td><td>TEXT</td></tr>
+          <tr><td>metric_value</td><td>TEXT</td></tr>
+          <tr><td>numeric_value</td><td>REAL</td></tr>
+          <tr><td>year</td><td>INTEGER</td></tr>
+          <tr><td>description</td><td>TEXT</td></tr>
+          <tr><td>discovered_at</td><td>TIMESTAMP</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">runs <span class="tag">23 rows</span></div>
+      <table class="schema-table" style="font-size: 0.75rem;">
+        <thead><tr><th>Column</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>INTEGER PK</td></tr>
+          <tr><td>recipe</td><td>TEXT</td></tr>
+          <tr><td>started_at, finished_at</td><td>TIMESTAMP</td></tr>
+          <tr><td>status</td><td>TEXT</td></tr>
+          <tr><td>scope</td><td>TEXT</td></tr>
+          <tr><td>facilities_targeted</td><td>INTEGER</td></tr>
+          <tr><td>facilities_completed</td><td>INTEGER</td></tr>
+          <tr><td>facilities_failed</td><td>INTEGER</td></tr>
+          <tr><td>contacts_found</td><td>INTEGER</td></tr>
+          <tr><td>config_json</td><td>TEXT</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">api_calls <span class="tag">38,175 rows</span></div>
+      <table class="schema-table" style="font-size: 0.75rem;">
+        <thead><tr><th>Column</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>INTEGER PK</td></tr>
+          <tr><td>run_id</td><td>INTEGER FK</td></tr>
+          <tr><td>timestamp</td><td>TIMESTAMP</td></tr>
+          <tr><td>endpoint</td><td>TEXT</td></tr>
+          <tr><td>method</td><td>TEXT</td></tr>
+          <tr><td>definitive_id</td><td>INTEGER</td></tr>
+          <tr><td>params_json</td><td>TEXT</td></tr>
+          <tr><td>http_status</td><td>INTEGER</td></tr>
+          <tr><td>records_returned</td><td>INTEGER</td></tr>
+          <tr><td>response_time_ms</td><td>INTEGER</td></tr>
+          <tr><td>error_message</td><td>TEXT</td></tr>
+          <tr><td>retry_count</td><td>INTEGER</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ 8. EXECUTIVE DATA ════════════════════════════════ -->
+<section id="exec-data">
+  <h2>8. Executive Data Deep Dive <span class="badge">156,080</span></h2>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Contact Coverage</div>
+      <div class="progress-row">
+        <span class="progress-label">Has phone number</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:99.99%; background: var(--green);"></span></span>
+        <span class="progress-value">99.99%</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Has LinkedIn URL</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:90.9%; background: var(--green);"></span></span>
+        <span class="progress-value">90.9%</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Has primary email</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:59.5%; background: var(--amber);"></span></span>
+        <span class="progress-value">59.5%</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Has direct email</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:16.2%; background: var(--red);"></span></span>
+        <span class="progress-value">16.2%</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">ICP matched</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:11.2%; background: var(--accent2);"></span></span>
+        <span class="progress-value">11.2%</span>
+      </div>
+      <p class="annotation">direct_email is mostly personal (Gmail/Yahoo) — use primary_email for outreach.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Position Level Distribution</div>
+      <div class="progress-row">
+        <span class="progress-label">Manager/Director</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:52.2%; background: var(--accent);"></span></span>
+        <span class="progress-value">81,420</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Other</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:29.7%; background: var(--muted);"></span></span>
+        <span class="progress-value">46,342</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">C-Level</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:15.9%; background: var(--green);"></span></span>
+        <span class="progress-value">24,852</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Vice President</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:2.1%; background: var(--accent2);"></span></span>
+        <span class="progress-value">3,273</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Board of Directors</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:0.1%; background: var(--pink);"></span></span>
+        <span class="progress-value">193</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Top 15 Parent Systems by Executive Count</div>
+    <table>
+      <thead><tr><th>Parent System</th><th class="num">Total Execs</th><th class="num">ICP Matched</th><th class="num">ICP %</th></tr></thead>
+      <tbody>
+        <tr><td>HCA Healthcare</td><td class="num">7,008</td><td class="num">1,172</td><td class="num">16.7%</td></tr>
+        <tr><td>Kaiser Permanente</td><td class="num">6,994</td><td class="num">561</td><td class="num">8.0%</td></tr>
+        <tr><td>OptumCare</td><td class="num">2,746</td><td class="num">236</td><td class="num">8.6%</td></tr>
+        <tr><td>Providence St Joseph Health</td><td class="num">2,736</td><td class="num">275</td><td class="num">10.1%</td></tr>
+        <tr><td>Universal Health Services</td><td class="num">2,589</td><td class="num">682</td><td class="num">26.3%</td></tr>
+        <tr><td>Mayo Clinic</td><td class="num">2,468</td><td class="num">81</td><td class="num">3.3%</td></tr>
+        <tr><td>Ascension Health</td><td class="num">2,441</td><td class="num">342</td><td class="num">14.0%</td></tr>
+        <tr><td>UC Health</td><td class="num">2,429</td><td class="num">190</td><td class="num">7.8%</td></tr>
+        <tr><td>Mass General Brigham</td><td class="num">2,363</td><td class="num">158</td><td class="num">6.7%</td></tr>
+        <tr><td>Northwell Health</td><td class="num">2,338</td><td class="num">156</td><td class="num">6.7%</td></tr>
+        <tr><td>Cleveland Clinic</td><td class="num">2,064</td><td class="num">186</td><td class="num">9.0%</td></tr>
+        <tr><td>UPMC</td><td class="num">2,052</td><td class="num">127</td><td class="num">6.2%</td></tr>
+        <tr><td>Tenet Healthcare</td><td class="num">1,835</td><td class="num">367</td><td class="num">20.0%</td></tr>
+        <tr><td>Corewell Health</td><td class="num">1,827</td><td class="num">114</td><td class="num">6.2%</td></tr>
+        <tr><td>Community Health Systems</td><td class="num">1,765</td><td class="num">313</td><td class="num">17.7%</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ 9. PHYSICIAN DATA ════════════════════════════════ -->
+<section id="phys-data">
+  <h2>9. Physician Data Deep Dive <span class="badge">252,016</span></h2>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">By Primary Specialty</div>
+      <div class="progress-row">
+        <span class="progress-label">Internal Medicine</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:75.5%; background: var(--accent);"></span></span>
+        <span class="progress-value">190,362</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Endocrinology</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:6.8%; background: var(--green);"></span></span>
+        <span class="progress-value">17,145</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Nephrology</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:3.3%; background: var(--amber);"></span></span>
+        <span class="progress-value">8,423</span>
+      </div>
+      <p class="annotation" style="margin-top: 0.5rem;">
+        112,237 unique NPIs across 1,387 ICU facilities.
+        82.6% have Medicare payment data. 97.6% have a practice phone.
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-title">By Role</div>
+      <div class="progress-row">
+        <span class="progress-label">Physician</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:64.7%; background: var(--accent);"></span></span>
+        <span class="progress-value">163,020</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Physician &amp; Med Dir</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:9.4%; background: var(--green);"></span></span>
+        <span class="progress-value">23,762</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Hospitalist</span>
+        <span class="progress-bar"><span class="progress-fill" style="width:8.4%; background: var(--amber);"></span></span>
+        <span class="progress-value">21,213</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ 10. SIGNALS & ENRICHMENT ═════════════════════════ -->
+<section id="signals">
+  <h2>10. Trigger Signals &amp; Account Enrichment <span class="badge">406,641</span></h2>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Trigger Signals by Type (301,510 total)</div>
+      <table>
+        <thead><tr><th>Signal Type</th><th class="num">Count</th><th class="num">%</th></tr></thead>
+        <tbody>
+          <tr><td>leadership_change</td><td class="num">300,675</td><td class="num">99.72%</td></tr>
+          <tr><td>affiliation_change</td><td class="num">334</td><td class="num">0.11%</td></tr>
+          <tr><td>ehr_migration</td><td class="num">217</td><td class="num">0.07%</td></tr>
+          <tr><td>new_facility</td><td class="num">191</td><td class="num">0.06%</td></tr>
+          <tr><td>m_and_a</td><td class="num">91</td><td class="num">0.03%</td></tr>
+          <tr><td>financial_distress</td><td class="num">2</td><td class="num">&lt;0.01%</td></tr>
+        </tbody>
+      </table>
+      <p class="annotation">Signal date range: June 2, 2025 &rarr; February 18, 2026. Sources: 298,803 from executive_update, 2,707 from news.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Account Enrichment by Type (105,131 total)</div>
+      <table>
+        <thead><tr><th>Data Type</th><th class="num">Count</th><th class="num">Facilities</th></tr></thead>
+        <tbody>
+          <tr><td>financial</td><td class="num">52,052</td><td class="num">4,248</td></tr>
+          <tr><td>membership</td><td class="num">35,552</td><td class="num">4,248</td></tr>
+          <tr><td>quality</td><td class="num">15,708</td><td class="num">4,248</td></tr>
+          <tr><td>quality_penalty</td><td class="num">1,819</td><td class="num">1,189</td></tr>
+        </tbody>
+      </table>
+
+      <h4 style="margin-top:1rem;">Membership Types</h4>
+      <table>
+        <tr><td>Accountable Care Organization</td><td class="num">12,309</td></tr>
+        <tr><td>Group Purchasing Org (GPO)</td><td class="num">10,055</td></tr>
+        <tr><td>Payor</td><td class="num">7,274</td></tr>
+        <tr><td>Health Info Exchange (HIE)</td><td class="num">3,673</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ 11. TIMELINE ═════════════════════════════════════ -->
+<section id="timeline">
+  <h2>11. Execution Timeline <span class="badge">10.6 hours</span></h2>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="time">Feb 19, 5:15 PM CT</div>
+      <div class="event">Pipeline infrastructure built &amp; tested</div>
+      <div class="detail">dh_client.py, db.py, icp_matcher.py, runner.py, all 10 recipe scripts, 3 Claude Code skills. Single-hospital test on Abbott Northwestern (def_id=2151): 78 execs, 6,230 physicians.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Feb 19, 5:49 PM CT</div>
+      <div class="event">R4 (Tiered Contacts) + R9 (Account Enrichment) launched</div>
+      <div class="detail">Both targeting 4,251 Enterprise/Strategic facilities, 5 workers each.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Feb 19, 6:15 PM CT</div>
+      <div class="event">R3 + R6 + R8 launched in parallel</div>
+      <div class="detail">All 5 recipes now running concurrently. SQLite lock contention begins — WAL mode + retry logic added.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Feb 19, 6:15 PM &rarr; 9:30 PM CT</div>
+      <div class="event">Multiple crashes and auto-recoveries</div>
+      <div class="detail">SQLite "database is locked" errors crash progress update code. Fixed with try/except wrappers, shorter timeouts, non-fatal progress tracking. Resume logic ensures zero data loss across restarts.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Feb 19, 11:44 PM CT</div>
+      <div class="event">R9 (Account Enrichment) completed</div>
+      <div class="detail">4,249/4,251 facilities. 105,131 enrichment records (quality, financial, membership).</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Feb 20, 12:11 AM CT</div>
+      <div class="event">R6 (Financial Distress) completed</div>
+      <div class="detail">1,189/1,189 distressed facilities. 2,993 contacts + 1,819 quality penalty records.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Feb 20, 12:11 AM CT</div>
+      <div class="event">R3 (Leadership Changes) completed</div>
+      <div class="detail">4,251/4,251 facilities. 301,510 trigger signals — 300,675 leadership changes detected.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Feb 20, 1:31 AM CT</div>
+      <div class="event">R8 (Physician Champions) completed</div>
+      <div class="detail">1,387/1,387 ICU facilities. 252,016 physicians (112,237 unique NPIs). Crashed at 99.7%, restarted, finished 4 remaining in 1.5 minutes.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Feb 20, 3:48 AM CT</div>
+      <div class="event">R4 (Tiered Contacts) completed — ALL RECIPES DONE</div>
+      <div class="detail">4,251/4,251 facilities. 156,080 executives, 17,557 ICP-matched. The longest-running recipe due to 11 API calls per facility + ICP matching.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ 12. INFRASTRUCTURE ═══════════════════════════════ -->
+<section id="infra">
+  <h2>12. Infrastructure &amp; API Stats <span class="badge">38,175 calls</span></h2>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">API Performance</div>
+      <table>
+        <tr><td style="color: var(--muted);">Total API calls</td><td class="num">38,175</td></tr>
+        <tr><td style="color: var(--muted);">Average response time</td><td class="num">3,545 ms</td></tr>
+        <tr><td style="color: var(--muted);">Timeouts (HTTP 0)</td><td class="num">568 (1.5%)</td></tr>
+        <tr><td style="color: var(--muted);">HTTP errors (4xx/5xx)</td><td class="num green">0</td></tr>
+        <tr><td style="color: var(--muted);">Calls retried</td><td class="num">305</td></tr>
+        <tr><td style="color: var(--muted);">Total retry attempts</td><td class="num">599</td></tr>
+        <tr><td style="color: var(--muted);">Concurrent workers</td><td class="num">5 per recipe (25 total)</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">Database</div>
+      <table>
+        <tr><td style="color: var(--muted);">Engine</td><td>SQLite 3 (WAL mode)</td></tr>
+        <tr><td style="color: var(--muted);">Location</td><td class="mono">enrichment/data/enrichment.db</td></tr>
+        <tr><td style="color: var(--muted);">Tables</td><td class="num">8</td></tr>
+        <tr><td style="color: var(--muted);">Total rows</td><td class="num">~814,000</td></tr>
+        <tr><td style="color: var(--muted);">Busy timeout</td><td>30s (conn) / 1s (API log)</td></tr>
+        <tr><td style="color: var(--muted);">Concurrency strategy</td><td>Per-operation connections, WAL mode, non-fatal progress updates</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Key Architectural Decisions</div>
+    <table>
+      <thead><tr><th>Challenge</th><th>Solution</th></tr></thead>
+      <tbody>
+        <tr><td>5 concurrent processes × 5 threads = 25 writers</td><td>SQLite WAL mode + per-operation short-lived connections + busy_timeout</td></tr>
+        <tr><td>Progress updates crashing recipes</td><td>Wrapped all DB progress writes in try/except (non-fatal)</td></tr>
+        <tr><td>API logging blocking threads</td><td>API call log uses 1s timeout (fails fast, logging is non-critical)</td></tr>
+        <tr><td>Crashes losing progress</td><td>Resume/skip logic: each recipe checks DB for already-processed facilities before starting</td></tr>
+        <tr><td>ICP matching false positives</td><td>Explicit rejection list (CIO, CTO, Chief of Radiology, etc.) + minimum 3-char keyword match</td></tr>
+        <tr><td>CMO not in ICP CSV</td><td>Synthetic ICP entries: CMO (intent=90) + Chief of Medicine (intent=80)</td></tr>
+        <tr><td>DH API rate limits</td><td>5 concurrent workers + exponential backoff on 429/5xx + 3 retries max</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="footnote">
+  Generated February 20, 2026 &nbsp;&bull;&nbsp; Glytec AI SDR &nbsp;&bull;&nbsp; Definitive Healthcare HospitalView API &nbsp;&bull;&nbsp; 38,175 API calls &nbsp;&bull;&nbsp; 10.6 hours<br>
+  Pipeline code: <code>enrichment/</code> &nbsp;&bull;&nbsp; Database: <code>enrichment/data/enrichment.db</code> &nbsp;&bull;&nbsp; Logs: <code>enrichment/logs/</code> &nbsp;&bull;&nbsp; Reference: <code>docs/definitive-hc/contact-enrichment-reference.md</code>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glytec AI SDR — Salesforge API Reality Check</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #08090c;
+    color: #c8d0e0;
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+  }
+  .page { max-width: 1040px; margin: 0 auto; }
+
+  /* Header */
+  .header { text-align: center; margin-bottom: 48px; }
+  .header h1 { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .header .sub { font-size: 14px; color: #64748b; line-height: 1.6; max-width: 640px; margin: 0 auto 16px; }
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; padding: 5px 16px; border-radius: 20px;
+  }
+  .badge-green { background: #0a2018; color: #4ade80; border: 1px solid #1e4a2a; }
+  .badge-red { background: #1a0a0a; color: #f87171; border: 1px solid #4a1a1a; }
+  .badge-yellow { background: #1a1508; color: #e8b84a; border: 1px solid #4a3a20; }
+  .badge-purple { background: #150f24; color: #b57edc; border: 1px solid #3a2660; margin-left: 6px; }
+
+  /* Legend */
+  .legend {
+    display: flex; justify-content: center; gap: 24px; margin-bottom: 40px; flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8a9ab5; }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 3px;
+  }
+  .dot-auto { background: #166534; border: 1px solid #4ade80; }
+  .dot-your-code { background: #1e3a5f; border: 1px solid #5b9bd5; }
+  .dot-manual { background: #4a1a1a; border: 1px solid #f87171; }
+  .dot-broken { background: #3a2a10; border: 1px solid #e8b84a; }
+
+  /* Section */
+  .section {
+    border-radius: 16px; padding: 28px 30px; margin-bottom: 24px;
+    position: relative; overflow: hidden;
+  }
+  .section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.4px;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .section-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .section-desc { font-size: 13px; color: #8a9ab5; line-height: 1.6; }
+
+  /* Timeline */
+  .timeline {
+    background: linear-gradient(135deg, #0c1424, #0a1018);
+    border: 1px solid #1e3a5f;
+  }
+  .tl-row {
+    display: flex; align-items: stretch; gap: 0;
+    margin-top: 20px; position: relative;
+  }
+  .tl-track {
+    position: absolute; top: 0; bottom: 0; left: 40px;
+    width: 3px; background: #1e3a5f; z-index: 0;
+  }
+  .tl-step {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 0; position: relative; z-index: 1;
+    width: 100%;
+  }
+  .tl-dot-wrap {
+    width: 80px; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .tl-day {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+    color: #64748b; margin-bottom: 6px; text-transform: uppercase;
+  }
+  .tl-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; position: relative; z-index: 2;
+  }
+  .tl-dot.auto { background: #0a2018; border: 2px solid #4ade80; color: #4ade80; }
+  .tl-dot.manual { background: #1a0a0a; border: 2px solid #f87171; color: #f87171; }
+  .tl-body { flex: 1; padding-top: 2px; }
+  .tl-title { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+  .tl-title.auto { color: #4ade80; }
+  .tl-title.manual { color: #f87171; }
+  .tl-detail { font-size: 12px; color: #6a7a90; line-height: 1.5; }
+  .tl-api {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 4px; margin-top: 6px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .tl-api.green { background: #0a2018; color: #4ade80; border: 1px solid #1e4a2a; }
+  .tl-api.red { background: #1a0a0a; color: #f87171; border: 1px solid #4a1a1a; }
+  .tl-api.blue { background: #0f1a30; color: #5b9bd5; border: 1px solid #1e3a5f; }
+
+  /* Flow diagram */
+  .flow-section {
+    background: linear-gradient(135deg, #0a1018, #0c0e14);
+    border: 1px solid #1a2a3a;
+  }
+  .flow-grid {
+    display: grid; grid-template-columns: 1fr 60px 1fr;
+    gap: 0; margin-top: 20px; align-items: start;
+  }
+  .flow-col-header {
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; padding: 10px 16px; text-align: center;
+    border-radius: 8px; margin-bottom: 12px;
+  }
+  .flow-col-header.left { background: #0f1a30; color: #5b9bd5; }
+  .flow-col-header.right { background: #150f24; color: #b57edc; }
+  .flow-arrow-col {
+    display: flex; flex-direction: column; align-items: center;
+    padding-top: 50px; gap: 24px;
+  }
+  .flow-arrow {
+    font-size: 16px; color: #3a4a60;
+    display: flex; align-items: center; justify-content: center;
+    height: 48px;
+  }
+  .flow-card {
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .flow-card.your-code { background: rgba(15,26,48,0.6); border-color: #1e3a5f; }
+  .flow-card.api-call { background: rgba(21,15,36,0.6); border-color: #3a2660; }
+  .flow-card.gap { background: rgba(26,10,10,0.4); border-color: #4a1a1a; border-style: dashed; }
+  .fc-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.8px;
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .fc-label.blue { color: #5b9bd5; }
+  .fc-label.purple { color: #b57edc; }
+  .fc-label.red { color: #f87171; }
+  .fc-label.green { color: #4ade80; }
+  .fc-title { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 3px; }
+  .fc-desc { font-size: 11px; color: #6a7a90; line-height: 1.4; }
+  .fc-endpoint {
+    font-size: 10px; font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #b57edc; margin-top: 4px;
+  }
+
+  /* Rules grid */
+  .rules-section {
+    background: linear-gradient(135deg, #0e0c14, #0a0810);
+    border: 1px solid #2a2040;
+  }
+  .rules-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px;
+  }
+  .rule-card {
+    background: rgba(0,0,0,0.3); border-radius: 10px; padding: 16px 18px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .rule-card.danger { border-color: #4a1a1a; border-left: 3px solid #f87171; }
+  .rule-card.warn { border-color: #3a2a10; border-left: 3px solid #e8b84a; }
+  .rule-card.info { border-color: #1e3a5f; border-left: 3px solid #5b9bd5; }
+  .rule-card.ok { border-color: #1e4a2a; border-left: 3px solid #4ade80; }
+  .rc-title { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 4px; }
+  .rc-desc { font-size: 11px; color: #8a9ab5; line-height: 1.5; }
+  .rc-code {
+    font-size: 10px; font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #b57edc; background: rgba(0,0,0,0.3); padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  /* Contact model */
+  .model-section {
+    background: linear-gradient(135deg, #0c1424, #0a0e18);
+    border: 1px solid #1e3a5f;
+  }
+  .model-table {
+    width: 100%; border-collapse: collapse; margin-top: 16px;
+    font-size: 12px;
+  }
+  .model-table th {
+    text-align: left; padding: 8px 12px; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.8px; text-transform: uppercase;
+    background: rgba(30,58,95,0.3); color: #5b9bd5;
+    border-bottom: 1px solid #1e3a5f;
+  }
+  .model-table td {
+    padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: #a0b0c8;
+  }
+  .model-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .field-name {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #e2e8f0; font-weight: 600;
+  }
+  .persist-yes { color: #4ade80; font-weight: 700; }
+  .persist-no { color: #f87171; font-weight: 700; }
+  .persist-trick { color: #e8b84a; font-weight: 700; }
+
+  /* Verdict cards */
+  .verdict-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 20px; }
+  .verdict-card {
+    border-radius: 14px; padding: 24px 22px; text-align: center;
+  }
+  .verdict-card.can {
+    background: linear-gradient(135deg, #0a1a10, #0c1a14);
+    border: 1px solid #1e4a2a;
+  }
+  .verdict-card.cant {
+    background: linear-gradient(135deg, #1a0a0a, #180c0c);
+    border: 1px solid #4a1a1a;
+  }
+  .verdict-card.partial {
+    background: linear-gradient(135deg, #1a1508, #181210);
+    border: 1px solid #4a3a20;
+  }
+  .vc-icon { font-size: 32px; margin-bottom: 8px; }
+  .vc-num { font-size: 36px; font-weight: 800; margin-bottom: 4px; }
+  .vc-num.green { color: #4ade80; }
+  .vc-num.red { color: #f87171; }
+  .vc-num.yellow { color: #e8b84a; }
+  .vc-label { font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
+  .vc-label.green { color: #4ade80; }
+  .vc-label.red { color: #f87171; }
+  .vc-label.yellow { color: #e8b84a; }
+  .vc-desc { font-size: 11px; color: #6a7a90; margin-top: 6px; line-height: 1.5; }
+
+  /* Dropdowns */
+  details { margin-top: 12px; border-radius: 8px; overflow: hidden; }
+  summary {
+    cursor: pointer; font-size: 12px; font-weight: 700; color: #8a9ab5;
+    padding: 8px 14px; background: rgba(0,0,0,0.25); border-radius: 8px;
+    list-style: none; display: flex; align-items: center; gap: 6px;
+    user-select: none;
+  }
+  summary:hover { background: rgba(0,0,0,0.4); }
+  summary::before { content: '\25B8'; font-size: 10px; transition: transform 0.2s; }
+  details[open] > summary::before { transform: rotate(90deg); }
+  summary::-webkit-details-marker { display: none; }
+  .dd-body {
+    padding: 12px 14px; background: rgba(0,0,0,0.15);
+    font-size: 12px; line-height: 1.65; color: #8a9ab5;
+    border-radius: 0 0 8px 8px;
+  }
+  .dd-body strong { color: #c8d0e0; }
+  .dd-body code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px; color: #b57edc; background: rgba(0,0,0,0.3);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* Bottom bar */
+  .bottom-bar {
+    margin-top: 40px; background: #111827; border: 1px solid #1e293b;
+    border-radius: 14px; padding: 24px 28px; text-align: center;
+  }
+  .bottom-bar .bar-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+  .bottom-bar .bar-text { font-size: 13px; color: #94a3b8; line-height: 1.6; max-width: 700px; margin: 0 auto; }
+
+  .footer { text-align: center; margin-top: 36px; font-size: 11px; color: #334155; }
+
+  @media (max-width: 760px) {
+    .flow-grid { grid-template-columns: 1fr; }
+    .flow-arrow-col { display: none; }
+    .rules-grid { grid-template-columns: 1fr; }
+    .verdict-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<div class="header">
+  <h1>Salesforge API &mdash; Reality Check</h1>
+  <p class="sub">
+    What the V1 workflow needs vs. what the API can actually do.<br>
+    Every endpoint tested. Every field verified. No guessing.
+  </p>
+  <span class="badge badge-green">Tested Feb 19, 2026</span>
+  <span class="badge badge-purple">16 Gotchas Documented</span>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot dot-auto"></div> Fully automatable via API</div>
+  <div class="legend-item"><div class="legend-dot dot-your-code"></div> Your code does the logic</div>
+  <div class="legend-item"><div class="legend-dot dot-manual"></div> Manual / No API path</div>
+  <div class="legend-item"><div class="legend-dot dot-broken"></div> API accepts but broken</div>
+</div>
+
+<!-- VERDICT CARDS -->
+<div class="verdict-row">
+  <div class="verdict-card can">
+    <div class="vc-num green">3</div>
+    <div class="vc-label green">Email Steps Automated</div>
+    <div class="vc-desc">Day 0, Day 3, Day 7 &mdash; fully programmable. Multi-step, A/B variants, custom wait days.</div>
+  </div>
+  <div class="verdict-card cant">
+    <div class="vc-num red">2</div>
+    <div class="vc-label red">LinkedIn Steps Manual</div>
+    <div class="vc-desc">Day 5 + Day 10 &mdash; zero LinkedIn endpoints in the API. Connection requests and follow-ups are 100% by hand.</div>
+  </div>
+  <div class="verdict-card partial">
+    <div class="vc-num yellow">5</div>
+    <div class="vc-label yellow">Your Code Required</div>
+    <div class="vc-desc">Kill-switch, webhook routing, DNC sync, dedup guard, SF writeback &mdash; API gives you data, your code does the thinking.</div>
+  </div>
+</div>
+
+<!-- 10-DAY OUTREACH ARC -->
+<div class="section timeline" style="margin-top: 24px;">
+  <div class="section-label" style="color:#5b9bd5;">The 10-Day Outreach Arc</div>
+  <div class="section-title" style="color:#fff;">What's automated vs. what's manual</div>
+  <div class="section-desc">The V1 sequence has 5 touchpoints. Three are email (fully automatable). Two are LinkedIn (fully manual).</div>
+
+  <div class="tl-row">
+    <div class="tl-track"></div>
+
+    <div class="tl-step">
+      <div class="tl-dot-wrap">
+        <div class="tl-day">Day 0</div>
+        <div class="tl-dot auto">1</div>
+      </div>
+      <div class="tl-body">
+        <div class="tl-title auto">Email 1 &mdash; Personalized Cold Email</div>
+        <div class="tl-detail">Signal-based hook + primary pain angle. 3-layer composition: persona &times; EHR &times; financial urgency. All contact data passed via <strong style="color:#b57edc;">customVars</strong>.</div>
+        <span class="tl-api green">PUT /steps &rarr; waitDays: 0</span>
+      </div>
+    </div>
+
+    <div class="tl-step">
+      <div class="tl-dot-wrap">
+        <div class="tl-day">Day 3</div>
+        <div class="tl-dot auto">2</div>
+      </div>
+      <div class="tl-body">
+        <div class="tl-title auto">Email 2 &mdash; Different Angle, Same Pain</div>
+        <div class="tl-detail">New proof point or case study. Different EHR or financial framing than Email 1.</div>
+        <span class="tl-api green">PUT /steps &rarr; waitDays: 3</span>
+      </div>
+    </div>
+
+    <div class="tl-step">
+      <div class="tl-dot-wrap">
+        <div class="tl-day">Day 5</div>
+        <div class="tl-dot manual">3</div>
+      </div>
+      <div class="tl-body">
+        <div class="tl-title manual">LinkedIn Connection Request</div>
+        <div class="tl-detail">Clayton or Reagan send from their personal profiles. Must have LinkedIn URL (available via <strong style="color:#b57edc;">customVars</strong> or contact record).</div>
+        <span class="tl-api red">NO API &mdash; 100% manual</span>
+      </div>
+    </div>
+
+    <div class="tl-step">
+      <div class="tl-dot-wrap">
+        <div class="tl-day">Day 7</div>
+        <div class="tl-dot auto">4</div>
+      </div>
+      <div class="tl-body">
+        <div class="tl-title auto">Email 3 &mdash; Direct CTA + Case Study</div>
+        <div class="tl-detail">Final email push. Direct ask with proof point. Can A/B test subject lines via multiple variants.</div>
+        <span class="tl-api green">PUT /steps &rarr; waitDays: 2 (after Day 5)</span>
+      </div>
+    </div>
+
+    <div class="tl-step">
+      <div class="tl-dot-wrap">
+        <div class="tl-day">Day 10</div>
+        <div class="tl-dot manual">5</div>
+      </div>
+      <div class="tl-body">
+        <div class="tl-title manual">LinkedIn Follow-Up Message</div>
+        <div class="tl-detail">If connection accepted, send brief conversational follow-up. If not accepted, skip.</div>
+        <span class="tl-api red">NO API &mdash; 100% manual</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- AUTOMATED FLOW -->
+<div class="section flow-section">
+  <div class="section-label" style="color:#5b9bd5;">End-to-End Automation Flow</div>
+  <div class="section-title" style="color:#fff;">Your Code + Salesforge API</div>
+  <div class="section-desc">Left side = your orchestration code. Right side = Salesforge API calls. Arrows show data direction.</div>
+
+  <div class="flow-grid">
+    <!-- LEFT: Your Code -->
+    <div>
+      <div class="flow-col-header left">Your Code</div>
+
+      <div class="flow-card your-code">
+        <div class="fc-label blue">Step 1</div>
+        <div class="fc-title">Score accounts + compose messages</div>
+        <div class="fc-desc">6-factor scoring &rarr; tier assignment. 3-layer message composition. All happens locally before touching Salesforge.</div>
+      </div>
+
+      <div class="flow-card your-code">
+        <div class="fc-label blue">Step 2</div>
+        <div class="fc-title">Group contacts by segment</div>
+        <div class="fc-desc">One sequence per tier &times; segment. Build the payload: name, steps, mailbox IDs, contact list.</div>
+      </div>
+
+      <div class="flow-card your-code" style="min-height:1px; padding:8px 16px;">
+        <div class="fc-label blue" style="margin:0;">&nbsp;</div>
+      </div>
+
+      <div class="flow-card your-code" style="min-height:1px; padding:8px 16px;">
+        <div class="fc-label blue" style="margin:0;">&nbsp;</div>
+      </div>
+
+      <div class="flow-card your-code" style="min-height:1px; padding:8px 16px;">
+        <div class="fc-label blue" style="margin:0;">&nbsp;</div>
+      </div>
+
+      <div class="flow-card your-code" style="min-height:1px; padding:8px 16px;">
+        <div class="fc-label blue" style="margin:0;">&nbsp;</div>
+      </div>
+
+      <div class="flow-card your-code">
+        <div class="fc-label blue">Step 7 &mdash; Monitor</div>
+        <div class="fc-title">Check kill-switch thresholds</div>
+        <div class="fc-desc">Pull analytics daily. If bounce &gt;5% or spam &gt;0.3% &rarr; pause. <strong>Salesforge has no built-in kill-switch.</strong> Your code is the brain.</div>
+      </div>
+
+      <div class="flow-card your-code">
+        <div class="fc-label blue">Step 8 &mdash; React</div>
+        <div class="fc-title">Catch webhooks + route</div>
+        <div class="fc-desc">Your server receives events. Bounces &rarr; DNC. Unsubs &rarr; DNC. Positive replies &rarr; alert AE. OOO &rarr; ignore.</div>
+      </div>
+
+      <div class="flow-card gap">
+        <div class="fc-label red">Gap</div>
+        <div class="fc-title">Salesforce writeback</div>
+        <div class="fc-desc">No native Salesforge &rarr; Salesforce integration. Your code must push opens/replies/bounces to SF API separately.</div>
+      </div>
+    </div>
+
+    <!-- CENTER: Arrows -->
+    <div class="flow-arrow-col">
+      <div class="flow-arrow">&nbsp;</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-arrow">&larr;</div>
+      <div class="flow-arrow">&larr;</div>
+      <div class="flow-arrow">&nbsp;</div>
+    </div>
+
+    <!-- RIGHT: Salesforge API -->
+    <div>
+      <div class="flow-col-header right">Salesforge API</div>
+
+      <div class="flow-card api-call" style="min-height:1px; padding:8px 16px;">
+        <div class="fc-label purple" style="margin:0;">&nbsp;</div>
+      </div>
+
+      <div class="flow-card api-call">
+        <div class="fc-label purple">Step 3</div>
+        <div class="fc-title">Create sequence</div>
+        <div class="fc-endpoint">POST /sequences</div>
+        <div class="fc-desc">Returns draft + 1 empty step. Language must be <code style="font-size:10px;color:#e8b84a;">american_english</code>.</div>
+      </div>
+
+      <div class="flow-card api-call">
+        <div class="fc-label purple">Step 4</div>
+        <div class="fc-title">Populate email steps</div>
+        <div class="fc-endpoint">PUT /sequences/{id}/steps</div>
+        <div class="fc-desc">3 steps (Day 0, 3, 7). Each needs <code style="font-size:10px;color:#e8b84a;">distributionStrategy</code>, <code style="font-size:10px;color:#e8b84a;">label</code>, <code style="font-size:10px;color:#e8b84a;">status</code>. Replaces all steps.</div>
+      </div>
+
+      <div class="flow-card api-call">
+        <div class="fc-label purple">Step 5</div>
+        <div class="fc-title">Assign mailboxes</div>
+        <div class="fc-endpoint">PUT /sequences/{id}/mailboxes</div>
+        <div class="fc-desc">Must use PUT (POST &rarr; 404). Empty array clears all. Invalid ID &rarr; 500.</div>
+      </div>
+
+      <div class="flow-card api-call">
+        <div class="fc-label purple">Step 6a</div>
+        <div class="fc-title">Enroll contacts</div>
+        <div class="fc-endpoint">PUT /sequences/{id}/import-lead</div>
+        <div class="fc-desc">One at a time. LinkedIn optional (just omit). Pass persona/signal/EHR data via <code style="font-size:10px;color:#e8b84a;">customVars</code>.</div>
+      </div>
+
+      <div class="flow-card api-call">
+        <div class="fc-label purple">Step 6b</div>
+        <div class="fc-title">Activate</div>
+        <div class="fc-endpoint">PUT /sequences/{id}/status</div>
+        <div class="fc-desc">Requires mailboxes. Can't go back to draft. Can't manually complete. Only <code style="font-size:10px;color:#e8b84a;">active</code> &harr; <code style="font-size:10px;color:#e8b84a;">paused</code>.</div>
+      </div>
+
+      <div class="flow-card api-call">
+        <div class="fc-label purple">Read</div>
+        <div class="fc-title">Pull metrics</div>
+        <div class="fc-endpoint">GET /analytics + GET /sequence-metrics</div>
+        <div class="fc-desc">Analytics requires <code style="font-size:10px;color:#e8b84a;">from_date</code> + <code style="font-size:10px;color:#e8b84a;">to_date</code>. Returns daily breakdown + aggregates.</div>
+      </div>
+
+      <div class="flow-card api-call">
+        <div class="fc-label purple">Events</div>
+        <div class="fc-title">Webhooks fire</div>
+        <div class="fc-endpoint">POST /integrations/webhooks (to register)</div>
+        <div class="fc-desc">10 event types. <code style="font-size:10px;color:#f87171;">dnc_added</code> is NOT valid despite old docs.</div>
+      </div>
+
+      <div class="flow-card api-call" style="min-height:1px; padding:8px 16px;">
+        <div class="fc-label purple" style="margin:0;">&nbsp;</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT DATA MODEL -->
+<div class="section model-section">
+  <div class="section-label" style="color:#5b9bd5;">The Contact Data Model</div>
+  <div class="section-title" style="color:#fff;">Only 8 fields exist. Everything else goes in customVars.</div>
+  <div class="section-desc">Both <code style="font-size:12px;color:#b57edc;">POST /contacts</code> and <code style="font-size:12px;color:#b57edc;">PUT /import-lead</code> accept extra fields like <code style="font-size:12px;color:#b57edc;">jobTitle</code> and <code style="font-size:12px;color:#b57edc;">phone</code> &mdash; they return 201/204 &mdash; but the data silently vanishes. It's not on the model.</div>
+
+  <table class="model-table">
+    <thead>
+      <tr>
+        <th>Field</th>
+        <th>Persists?</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="field-name">id</span></td><td><span class="persist-yes">Yes</span></td><td>Auto-generated. <code>lead_...</code> prefix.</td></tr>
+      <tr><td><span class="field-name">firstName</span></td><td><span class="persist-yes">Yes</span></td><td>Required on all create endpoints.</td></tr>
+      <tr><td><span class="field-name">lastName</span></td><td><span class="persist-yes">Yes</span></td><td>Required on all create endpoints.</td></tr>
+      <tr><td><span class="field-name">email</span></td><td><span class="persist-yes">Yes</span></td><td>Required. Duplicate email &rarr; same lead ID (upsert).</td></tr>
+      <tr><td><span class="field-name">company</span></td><td><span class="persist-yes">Yes</span></td><td>Not actually required on <code>POST /contacts</code> (defaults to <code>""</code>).</td></tr>
+      <tr><td><span class="field-name">linkedinUrl</span></td><td><span class="persist-yes">Yes</span></td><td>Optional everywhere. Omit or <code>null</code> &mdash; never <code>""</code>.</td></tr>
+      <tr><td><span class="field-name">tags</span></td><td><span class="persist-yes">Yes</span></td><td>Array. Auto-adds <code>pa-YYYYMMDD</code>. Required for bulk create.</td></tr>
+      <tr><td><span class="field-name">customVars</span></td><td><span class="persist-yes">Yes</span></td><td>Key-value object. <strong>This is your extensibility layer.</strong></td></tr>
+      <tr style="background:rgba(248,113,113,0.05);"><td><span class="field-name" style="color:#f87171;">jobTitle</span></td><td><span class="persist-no">No</span></td><td>Accepted (201/204) but never stored. Use <code>customVars.job_title</code>.</td></tr>
+      <tr style="background:rgba(248,113,113,0.05);"><td><span class="field-name" style="color:#f87171;">phone</span></td><td><span class="persist-no">No</span></td><td>Accepted (201/204) but never stored. Use <code>customVars.phone</code>.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- GOTCHAS / RULES -->
+<div class="section rules-section">
+  <div class="section-label" style="color:#b57edc;">API Gotchas That Will Bite You</div>
+  <div class="section-title" style="color:#fff;">Rules an AI builder needs to know</div>
+
+  <div class="rules-grid">
+
+    <div class="rule-card danger">
+      <div class="rc-title">Filters don't filter</div>
+      <div class="rc-desc">Every list endpoint (<code class="rc-code">status</code> on sequences, <code class="rc-code">tags</code> on contacts, <code class="rc-code">reply_type</code> on threads, <code class="rc-code">status</code> on mailboxes) accepts filter params but <strong style="color:#f87171;">returns the full unfiltered dataset</strong>. You must paginate everything and filter client-side.</div>
+    </div>
+
+    <div class="rule-card danger">
+      <div class="rc-title">PUT, not POST on sub-resources</div>
+      <div class="rc-desc"><code class="rc-code">POST /sequences/{id}/mailboxes</code> &rarr; 404. <code class="rc-code">POST /sequences/{id}/contacts</code> &rarr; 404. Must use <strong>PUT</strong> for mailbox assignment and contact enrollment. POST only works for top-level creates.</div>
+    </div>
+
+    <div class="rule-card danger">
+      <div class="rc-title">PUT /steps replaces everything</div>
+      <div class="rc-desc">Sending steps array <strong style="color:#f87171;">deletes any steps you omit</strong>. Always send the full array. Same applies to <code class="rc-code">PUT /mailboxes</code> &mdash; empty array <code class="rc-code">[]</code> clears all assignments.</div>
+    </div>
+
+    <div class="rule-card danger">
+      <div class="rc-title">Changing productId crashes the API</div>
+      <div class="rc-desc"><code class="rc-code">PUT /sequences/{id}</code> with <code class="rc-code">productId</code> returns <strong style="color:#f87171;">500 Internal Server Error</strong>. Language and timezone are silently ignored on PUT. These are set-once at creation.</div>
+    </div>
+
+    <div class="rule-card warn">
+      <div class="rc-title">language is not "en"</div>
+      <div class="rc-desc">Sequence creation requires <code class="rc-code">language: "american_english"</code> &mdash; not <code class="rc-code">"en"</code>, not <code class="rc-code">"english"</code>. Full list: american_english, british_english, dutch, italian, czech, hungarian, swedish, ukrainian, german, danish, romanian, french, russian, estonian, finnish, latvian, japanese, brazilian_portugese, norwegian, spanish, polish, lithuanian.</div>
+    </div>
+
+    <div class="rule-card warn">
+      <div class="rc-title">linkedinUrl: omit, don't empty-string</div>
+      <div class="rc-desc">On <code class="rc-code">import-lead</code>: omitting the field or passing <code class="rc-code">null</code> works fine. Passing <code class="rc-code">""</code> (empty string) &rarr; 400 validation error. This applies to import-lead only.</div>
+    </div>
+
+    <div class="rule-card warn">
+      <div class="rc-title">Variant fields are secretly required</div>
+      <div class="rc-desc"><code class="rc-code">PUT /steps</code> requires <code class="rc-code">distributionStrategy</code> (equal|custom), <code class="rc-code">label</code>, and <code class="rc-code">status</code> (active|paused) on every variant. Swagger doesn't mark them required. Missing any &rarr; 400.</div>
+    </div>
+
+    <div class="rule-card warn">
+      <div class="rc-title">Can't activate without mailboxes</div>
+      <div class="rc-desc"><code class="rc-code">PUT /status &rarr; active</code> fails with "sequence without mailboxes" if no mailboxes are assigned. Also: can't go back to <code class="rc-code">draft</code>, can't manually set <code class="rc-code">completed</code>.</div>
+    </div>
+
+    <div class="rule-card info">
+      <div class="rc-title">Duplicate contacts are upserts</div>
+      <div class="rc-desc"><code class="rc-code">POST /contacts</code> with an existing email returns <strong>201 with the same lead ID</strong>. Updates name/company on the existing record. Not an error &mdash; it's upsert behavior. But duplicate <em>enrollment</em> increments leadCount (same contact counted twice).</div>
+    </div>
+
+    <div class="rule-card info">
+      <div class="rc-title">Bulk create requires tags</div>
+      <div class="rc-desc"><code class="rc-code">POST /contacts/bulk</code> requires a <code class="rc-code">tags</code> array on every contact or you get 400. Single <code class="rc-code">POST /contacts</code> doesn't require tags (auto-adds <code class="rc-code">pa-YYYYMMDD</code>).</div>
+    </div>
+
+    <div class="rule-card info">
+      <div class="rc-title">No Bearer prefix</div>
+      <div class="rc-desc">Auth header is <code class="rc-code">Authorization: &lt;raw key&gt;</code>. Adding <code class="rc-code">Bearer</code> prefix will fail. Every endpoint is workspace-scoped: <code class="rc-code">/workspaces/{id}/...</code></div>
+    </div>
+
+    <div class="rule-card ok">
+      <div class="rc-title">customVars is your Swiss Army knife</div>
+      <div class="rc-desc">Any key-value pairs in <code class="rc-code">customVars</code> persist and return on every GET. Use this for: job title, phone, persona frame, EHR vendor, signal, bed count, facility name. It's the only extensible field on the contact model.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- WHAT'S STILL MANUAL -->
+<div class="section" style="background: linear-gradient(135deg, #1a0a0a, #140c0c); border: 1px solid #4a1a1a;">
+  <div class="section-label" style="color:#f87171;">Still Manual in V1</div>
+  <div class="section-title" style="color:#f87171;">No API path exists for these</div>
+
+  <div class="rules-grid" style="margin-top:16px;">
+    <div class="rule-card danger">
+      <div class="rc-title">LinkedIn outreach (Day 5 + Day 10)</div>
+      <div class="rc-desc">Zero LinkedIn endpoints in the Salesforge API. Connection requests and follow-up messages are sent by Clayton/Reagan manually from their profiles. This is 40% of the outreach arc.</div>
+    </div>
+    <div class="rule-card danger">
+      <div class="rc-title">Reply routing to AEs</div>
+      <div class="rc-desc">Webhooks fire for <code class="rc-code">positive_reply</code> and <code class="rc-code">email_replied</code>, but routing an interested reply to an AE within 4 hours requires your own alerting system (Slack webhook, email, etc.).</div>
+    </div>
+    <div class="rule-card danger">
+      <div class="rc-title">Salesforce writeback</div>
+      <div class="rc-desc">No native Salesforge &rarr; Salesforce sync. Opens, replies, bounces, and sequence activity must be pushed to Salesforce by your own code catching Salesforge webhooks and writing to the SF API.</div>
+    </div>
+    <div class="rule-card danger">
+      <div class="rc-title">Mailbox reconnection</div>
+      <div class="rc-desc">Several mailboxes show <code class="rc-code">disconnectReason</code> errors. The API can detect disconnection but reconnecting requires OAuth flows through the UI or Warmforge.</div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM LINE -->
+<div class="bottom-bar">
+  <div class="bar-title">Bottom Line</div>
+  <div class="bar-text">
+    The 3-email sequence is <strong style="color:#4ade80;">fully automatable</strong>. LinkedIn is <strong style="color:#f87171;">100% manual</strong>.<br>
+    The kill-switch, webhook routing, DNC sync, and SF writeback all work &mdash; but <strong style="color:#5b9bd5;">your code is the orchestrator</strong>.<br>
+    Salesforge is the sending engine. Everything else is you.
+  </div>
+</div>
+
+<div class="footer">Glytec AI SDR &mdash; Salesforge API Reality Check &mdash; Tested Feb 19, 2026</div>
+
+</div>
+</body>
+</html>
