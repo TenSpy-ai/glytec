@@ -1,6 +1,6 @@
 # GTM Hello World
 
-A light, testable implementation of the Glytec GTM system. This folder contains everything needed to run outbound campaigns end-to-end: campaign designs, a SQLite database, seed data, tracking scripts, and 14 slash commands for day-to-day operations.
+A light, testable implementation of the Glytec GTM system. This folder contains everything needed to run outbound campaigns end-to-end: campaign designs, a SQLite database, seed data, tracking scripts, an autopilot orchestrator, and 16 slash commands for day-to-day operations.
 
 ## Quick Start
 
@@ -56,7 +56,9 @@ gtm-hello-world/
 ├── db.py                            # Shared get_conn() + log_api_call()
 ├── mcp.py                           # Instantly MCP protocol client (38 tools)
 ├── api.py                           # Instantly REST API client (block list fallback)
-├── seed_db.py                       # Create 12-table schema + insert seed data
+├── query_builder.py                 # Chainable contact query builder + natural language parser
+├── autopilot.py                     # Campaign orchestrator (7-step pipeline) + daily monitor
+├── seed_db.py                       # Create 14-table schema + insert seed data
 ├── check_status.py                  # Status dashboard from DB
 ├── pull_metrics.py                  # Pull Instantly analytics → metric_snapshots
 ├── process_replies.py               # Reply scanning + sentiment classification
@@ -97,8 +99,10 @@ gtm-hello-world/
 | `db.py` | Shared `get_conn()` (SQLite + WAL mode) and `log_api_call()` |
 | `mcp.py` | `InstantlyMCP` class — 38 MCP tools over Streamable HTTP (JSON-RPC 2.0) |
 | `api.py` | `InstantlyAPI` class — REST API fallback for block list endpoints |
-| `seed_db.py` | Creates 12-table schema + inserts seed data (10 accounts, 10 contacts, 3 mailboxes) |
-| `config_server.py` | Local HTTP server (port 8099) — serves tracker.html + GET/PUT `/config` API for editing config.py |
+| `query_builder.py` | `ContactQuery` chainable filter builder + `parse_natural_language()` NL parser for lead selection |
+| `autopilot.py` | `Autopilot` 7-step orchestrator (resolve template → select → preflight → create → enroll → activate → record) + `run_monitor()` daily cycle |
+| `seed_db.py` | Creates 14-table schema + inserts seed data (10 accounts, 10 contacts, 3 mailboxes) |
+| `config_server.py` | Local HTTP server (port 8099) — serves tracker.html + `/config`, `/dashboard`, `/tables`, `/runs/{id}` APIs |
 
 ### Root Scripts
 
@@ -131,7 +135,7 @@ gtm-hello-world/
 
 ## Slash Commands
 
-All 14 commands are in `.claude/commands/instantly-*.md`:
+All 16 commands are in `.claude/commands/instantly-*.md`:
 
 | Command | Description |
 |---------|-------------|
@@ -149,6 +153,8 @@ All 14 commands are in `.claude/commands/instantly-*.md`:
 | `/instantly-clay-push` | Push positive replies to Clay webhook |
 | `/instantly-status` | Full operational dashboard from DB |
 | `/instantly-verify` | Verify emails before enrollment |
+| `/instantly-autopilot` | End-to-end campaign creation from template + NL lead criteria |
+| `/instantly-monitor` | Daily monitoring: metrics + replies + Clay push + kill-switch |
 | `/config-server` | Start config server (port 8099) + open tracker in browser |
 | `/config-server-stop` | Stop the background config server |
 | `/config-server-restart` | Restart server + open browser |
@@ -156,7 +162,7 @@ All 14 commands are in `.claude/commands/instantly-*.md`:
 
 ## Seed Data
 
-- **12 tables** — accounts, facilities, contacts, campaigns, campaign_contacts, email_threads, reply_sentiment, metric_snapshots, engagement_events, mailboxes, api_log, block_list
+- **14 tables** — accounts, contacts, campaigns, campaign_contacts, metric_snapshots, reply_sentiment, clay_push_log, email_threads, engagement_events, mailboxes, api_log, block_list, autopilot_runs, autopilot_steps
 - **10 accounts** — diverse health systems (HCA, Kaiser, Providence, etc.)
 - **10 contacts** — ICP Decision Makers across different titles and departments
 - **3 mailboxes** — Clayton Maike across warmed domains
@@ -164,4 +170,4 @@ All 14 commands are in `.claude/commands/instantly-*.md`:
 
 ## Relationship to Production Design
 
-This hello-world is a **purposeful subset** of the full production schema in `docs/instantly/gtm-operations-design-instantly.md`. It has 12 tables (vs 20+ in production) and focuses on the core campaign lifecycle: accounts → contacts → campaigns → metrics → replies → Clay push.
+This hello-world is a **purposeful subset** of the full production schema in `docs/instantly/gtm-operations-design-instantly.md`. It has 14 tables (vs 20+ in production) and focuses on the core campaign lifecycle: accounts → contacts → campaigns → metrics → replies → Clay push, with autopilot orchestration and step-level tracking.

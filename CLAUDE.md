@@ -38,17 +38,19 @@ glytec/
 │   ├── data/                       # SQLite DB (created by seed_db.py)
 │   ├── mcp.py                      # Instantly MCP wrapper (38 tools)
 │   ├── api.py                      # Instantly REST API v2 client
-│   ├── db.py                       # 12-table operational schema
+│   ├── db.py                       # 14-table operational schema
 │   ├── config.py                   # Paths, env vars, constants, thresholds
-│   ├── config_server.py            # Stdlib HTTP server for config editing
-│   ├── tracker.html                # Interactive campaign tracker + docs
+│   ├── query_builder.py            # Chainable contact query builder + NL parser
+│   ├── autopilot.py                # Campaign orchestrator (7-step pipeline) + daily monitor
+│   ├── config_server.py            # Stdlib HTTP server for config/dashboard/tables APIs
+│   ├── tracker.html                # Interactive tracker — Pipeline, Docs, Architecture, Autopilot, Data Explorer tabs
 │   ├── PROCESS.md                  # 12-step operational playbook
 │   └── seed_db.py, check_status.py, pull_metrics.py, process_replies.py, push_to_clay.py
 ├── docs/
 │   ├── instantly/                  # Instantly MCP + API design docs
 │   └── salesforge/                 # Salesforge API reference (legacy archive)
 └── .claude/
-    ├── commands/                   # 14 /instantly-* commands for Instantly operations
+    ├── commands/                   # 16 /instantly-* commands for Instantly operations
     └── skills/                     # 3 /dh-* skills for enrichment recipes
 ```
 
@@ -94,6 +96,8 @@ Commands wrap Instantly operational scripts in `gtm-hello-world/`. All DRY-RUN b
 | `/instantly-status` | Full operational dashboard |
 | `/instantly-verify` | Verify emails before enrollment |
 | `/instantly-clay-push` | Push positive replies to Clay webhook → Salesforce |
+| `/instantly-autopilot` | End-to-end campaign creation from template + lead criteria |
+| `/instantly-monitor` | Daily monitoring cycle: metrics + replies + Clay push + kill-switch |
 
 ## Commands (Config Server — `/config-server-*`)
 
@@ -124,7 +128,7 @@ Key join fields: `Definitive ID` links facilities across CSVs; `Highest Level Pa
 |----------|----------|---------|---------|
 | Enrichment DB | `enrichment/data/enrichment.db` | 814K+ | DH contacts, physicians, trigger signals, account enrichment |
 | Pipeline DB | `pipeline/glytec_v1.db` | — | Legacy: 6-table scoring + messaging pipeline |
-| Hello World DB | `gtm-hello-world/data/gtm_hello_world.db` | 23 seed | 12-table operational DB for Instantly GTM |
+| Hello World DB | `gtm-hello-world/data/gtm_hello_world.db` | 23 seed | 14-table operational DB for Instantly GTM |
 
 ## GTM Hello World (`gtm-hello-world/`)
 
@@ -133,7 +137,8 @@ Light testable implementation for running campaigns via Instantly MCP.
 - **Quick start:** `cd gtm-hello-world && python seed_db.py && python check_status.py`
 - **Test suite:** `cd gtm-hello-world && python -m tests.run_all` — 186 tests, 4-phase parallel runner
 - **Playbook:** `PROCESS.md` — 12-step guide from contact discovery to quarterly refresh
-- **Tracker:** `tracker.html` — interactive HTML progress tracker (open in browser)
+- **Tracker:** `tracker.html` — interactive tracker with 5 tabs: Pipeline, Docs, Architecture, Autopilot (live dashboard), Data Explorer (all tables)
+- **Autopilot:** `autopilot.py` + `query_builder.py` — end-to-end campaign orchestration from template + NL lead criteria
 - **9 campaigns** mapping to enrichment recipes R1-R10
 
 ### Architecture
@@ -155,6 +160,7 @@ Light testable implementation for running campaigns via Instantly MCP.
 - `email_list` is array of email strings, not IDs
 - `skip_if_in_workspace=true` on bulk add prevents cross-campaign dupes
 - `search_campaigns_by_contact` returns str when empty — known bug, calls `.get()` on str
+- **`title` is NOT a native lead field** — the CRM "Title" column is enrichment-only (Lead Finder). Use `custom_variables.title` instead. API schema has `additionalProperties: false`; unknown top-level fields are silently dropped. Reference as `{{title}}` in email templates.
 - See `docs/instantly/api-test-results.md` for full verified behavior matrix (38 tools)
 
 ## Datagen SDK (tool execution in code)

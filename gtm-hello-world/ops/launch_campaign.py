@@ -105,7 +105,14 @@ def get_sender_accounts(conn) -> list[str]:
 
 
 def build_lead_payload(contact: dict) -> dict:
-    """Build Instantly lead payload from local contact."""
+    """Build Instantly lead payload from local contact.
+
+    NOTE: `title` goes in custom_variables, NOT as a top-level field.
+    Instantly's native CRM "Title" column is enrichment-only (Lead Finder).
+    The API schema has additionalProperties:false — unknown top-level fields
+    are silently dropped. Use {{title}} in email templates to reference it.
+    See docs/instantly/api-test-results.md § "Lead Field Mapping" for details.
+    """
     payload = {
         "email": contact["email"],
         "first_name": contact.get("first_name", ""),
@@ -113,6 +120,8 @@ def build_lead_payload(contact: dict) -> dict:
         "company_name": contact.get("account_name", ""),
     }
 
+    # Title must be a custom variable — NOT a top-level field.
+    # The native CRM "Title" column only populates via Lead Finder enrichment.
     custom_vars = {}
     if contact.get("title"):
         custom_vars["title"] = contact["title"]

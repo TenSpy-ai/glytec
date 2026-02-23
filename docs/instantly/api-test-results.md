@@ -285,7 +285,92 @@ python -m tests.run_all --serial
 
 ---
 
-## 11. Environment Constraints
+## 11. Lead Field Mapping — Title Is NOT a Native API Field
+
+**Verified 2026-02-22** via API spec, Playwright UI inspection, and network request interception.
+
+### The Problem
+
+Instantly CRM shows a native "Title" column in the leads table. This creates the expectation that `title` is a first-class lead property you can set via API. **It is not.**
+
+### What the API Actually Accepts
+
+The `POST /api/v2/leads` (createLead), `PATCH /api/v2/leads/{id}` (patchLead), and `POST /api/v2/leads/add` (bulkAddLeads) schemas all have `additionalProperties: false`. The accepted fields are:
+
+```
+email, first_name, last_name, company_name, phone, website, personalization,
+campaign, lt_interest_status, pl_value_lead, list_id, assigned_to,
+skip_if_in_workspace, skip_if_in_campaign, skip_if_in_list,
+blocklist_id, verify_leads_for_lead_finder, verify_leads_on_import,
+custom_variables
+```
+
+**`title` is not in this list.** Sending `"title": "VP of Finance"` as a top-level field is silently ignored (or rejected by `additionalProperties: false`).
+
+### Where the Native Title Column Gets Its Data
+
+The native "Title" column is populated **only** by Instantly's Lead Finder / SuperSearch enrichment engine. When you use Lead Finder to discover contacts, Instantly enriches them with `email_enrichment` data including `jobTitle`. This enrichment data populates the native Title column.
+
+For leads imported via API, `email_enrichment` is `null` and the native Title column stays empty.
+
+### Why It Looks Like a Native Field
+
+1. **CSV import** has a predefined variable mapping called "Job title" — this maps the CSV column to `custom_variables.title`, but the UI makes it look like a native field mapping.
+2. **SuperSearch** has `title` as a filter parameter (line 30837 in `api_v2.json`) — but this is a search filter for Lead Finder, not a lead property.
+3. **The enrichment response schema** (def-71 `jobTitle`) returns title data — but this is read-only enrichment data, not settable via API.
+
+### Correct Approach: Use `custom_variables`
+
+```python
+# CORRECT — title goes in custom_variables
+payload = {
+    "email": "contact@example.com",
+    "first_name": "Jane",
+    "last_name": "Smith",
+    "company_name": "HCA Healthcare",
+    "custom_variables": {
+        "title": "VP of Clinical Operations"
+    }
+}
+```
+
+This creates a custom variable `title` that:
+- Appears as its own column in the CRM table (auto-created on first use)
+- Is accessible in email templates as `{{title}}`
+- Is stored in the lead's `payload` object (visible in lead detail panel)
+- Is searchable via lead filters
+
+**Do NOT attempt** to set `title` as a top-level field — it will not populate the native Title column.
+
+### Impact on Our Code
+
+`build_lead_payload()` in `ops/launch_campaign.py` (line 107) correctly maps `contact["title"]` → `custom_variables["title"]`. This is the right approach. Do not "fix" it by moving title to a top-level field.
+
+### Internal API Note
+
+Instantly CRM's internal API (`POST /backend-alt/api/v1/lead/list`) stores all personal data in a `payload` JSON object, not as top-level fields. The response structure is:
+
+```json
+{
+  "contact": "email@example.com",
+  "payload": {
+    "email": "email@example.com",
+    "title": "VP of Clinical Operations",
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "companyName": "HCA Healthcare",
+    "icp_category": "Clinical",
+    "icp_department": "Clinical Operations"
+  },
+  "email_enrichment": null
+}
+```
+
+The `email_enrichment` field is `null` for API-imported leads and only populated when Instantly's Lead Finder enriches a contact.
+
+---
+
+## 12. Environment Constraints
 
 - **No sending accounts** → Campaign creation fails. Tests skip gracefully.
 - **Block list writes 403** → API plan restriction. Tests skip gracefully.

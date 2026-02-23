@@ -226,7 +226,46 @@ def get_schema() -> str:
         created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- ===========================================
+    -- AUTOPILOT
+    -- ===========================================
+
+    CREATE TABLE IF NOT EXISTS autopilot_runs (
+        id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+        template                TEXT NOT NULL,
+        campaign_name           TEXT,
+        campaign_id             INTEGER REFERENCES campaigns(id),
+        instantly_campaign_id   TEXT,
+        query_desc              TEXT,
+        contact_count           INTEGER,
+        sender_count            INTEGER,
+        schedule_type           TEXT,
+        mode                    TEXT,          -- 'dry_run' or 'live'
+        config_json             TEXT,          -- full AutopilotConfig serialized
+        status                  TEXT DEFAULT 'pending',  -- pending/running/completed/failed
+        error_message           TEXT,
+        steps_completed         TEXT,          -- JSON array of completed step names
+        duration_ms             INTEGER,
+        created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completed_at            TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS autopilot_steps (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        run_id          INTEGER NOT NULL REFERENCES autopilot_runs(id),
+        step_number     INTEGER NOT NULL,
+        step_name       TEXT NOT NULL,       -- resolve_template, select_contacts, preflight, create, enroll, activate, record
+        status          TEXT DEFAULT 'pending',  -- pending/running/completed/failed/skipped
+        detail          TEXT,               -- human-readable output or error
+        data_json       TEXT,               -- structured output (contact list, campaign id, etc.)
+        duration_ms     INTEGER,
+        started_at      TIMESTAMP,
+        completed_at    TIMESTAMP
+    );
+
     -- Indexes
+    CREATE INDEX IF NOT EXISTS idx_autopilot_status ON autopilot_runs(status);
+    CREATE INDEX IF NOT EXISTS idx_autopilot_steps_run ON autopilot_steps(run_id);
     CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email);
     CREATE INDEX IF NOT EXISTS idx_contacts_account ON contacts(account_name);
     CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status);
@@ -333,7 +372,8 @@ def main() -> None:
         for table in ["accounts", "contacts", "mailboxes", "campaigns",
                        "campaign_contacts", "metric_snapshots", "reply_sentiment",
                        "clay_push_log", "email_threads", "engagement_events",
-                       "api_log", "block_list"]:
+                       "api_log", "block_list", "autopilot_runs",
+                       "autopilot_steps"]:
             row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
             counts[table] = row[0]
 

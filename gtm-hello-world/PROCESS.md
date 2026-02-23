@@ -324,6 +324,27 @@ After refresh:
 
 ---
 
+## Appendix: Autopilot Shortcuts
+
+**`/instantly-autopilot`** automates Steps 3–7 (create campaign → enroll → activate). Provide a template and lead criteria in natural language:
+
+```
+/instantly-autopilot new-in-role top 20 CNOs at Epic hospitals
+/instantly-autopilot priority-account all Active tier --live
+/instantly-autopilot                    # interactive — picks template and leads interactively
+```
+
+**`/instantly-monitor`** automates Steps 8–9 (daily metrics + reply processing + Clay push + kill-switch):
+
+```
+/instantly-monitor          # dry run
+/instantly-monitor --live   # live
+```
+
+Both commands log every step to `autopilot_runs` + `autopilot_steps` tables. View run history and step details in the Autopilot tab of `tracker.html`.
+
+---
+
 ## Appendix: Quick Command Reference
 
 | Task | Command |
@@ -341,6 +362,10 @@ After refresh:
 | Run test suite | `python -m tests.run_all` |
 | Run tests (quick) | `python -m tests.run_all --quick` |
 | Run single test | `python -m tests.run_all test_00_db` |
+| Autopilot (dry) | `/instantly-autopilot new-in-role top 5 Active tier` |
+| Autopilot (live) | `/instantly-autopilot priority-account all Active --live` |
+| Monitor (dry) | `/instantly-monitor` |
+| Monitor (live) | `/instantly-monitor --live` |
 
 ---
 

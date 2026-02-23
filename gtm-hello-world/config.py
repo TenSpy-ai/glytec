@@ -26,7 +26,7 @@ CLAY_WEBHOOK_URL = os.getenv("CLAY_WEBHOOK_URL", "")
 # ---------------------------------------------------------------------------
 # Operational constants
 # ---------------------------------------------------------------------------
-DRY_RUN = True  # Default safe mode — override with --live flag
+DRY_RUN = False  # LIVE MODE — set True to re-enable safe mode
 
 # Kill-switch thresholds
 BOUNCE_RATE_LIMIT = 0.05       # 5% — auto-pause campaign

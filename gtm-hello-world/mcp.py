@@ -175,7 +175,7 @@ class InstantlyMCP:
         # MCP tool results come as content blocks — extract text
         extracted = self._extract_content(content) if content else result_data
 
-        # Log success
+        # Log
         duration_ms_total = int((time.time() - start) * 1000)
         try:
             conn = get_conn()
@@ -185,6 +185,15 @@ class InstantlyMCP:
             conn.close()
         except Exception:
             pass
+
+        # Raise on error strings from MCP (e.g. "Error calling tool 'x': Bad Request")
+        if isinstance(extracted, str) and extracted.startswith("Error calling tool"):
+            raise MCPError(-1, extracted, duration_ms_total)
+
+        # Raise on error dicts (e.g. {"success": false, "stage": "no_accounts"})
+        if isinstance(extracted, dict) and extracted.get("success") is False:
+            msg = extracted.get("message", extracted.get("stage", "Unknown error"))
+            raise MCPError(-1, msg, duration_ms_total)
 
         return extracted
 
@@ -316,18 +325,10 @@ class InstantlyMCP:
                 args.setdefault("subject", src.get("subject", ""))
                 args.setdefault("body", src.get("body", ""))
 
-        # Legacy: extract timing from campaign_schedule
-        if campaign_schedule:
-            scheds = campaign_schedule.get("schedules", [])
-            if scheds:
-                timing = scheds[0].get("timing", {})
-                if timing.get("from"):
-                    args.setdefault("timing_from", timing["from"])
-                if timing.get("to"):
-                    args.setdefault("timing_to", timing["to"])
-                tz = scheds[0].get("timezone")
-                if tz:
-                    args.setdefault("timezone", tz)
+        # NOTE: campaign_schedule/timing params are NOT supported by the MCP
+        # create_campaign tool. The MCP applies a default schedule automatically.
+        # Passing timing_from/timing_to/timezone causes "Bad Request".
+        # Schedule can be updated after creation via update_campaign if needed.
 
         if email_list:
             args["email_list"] = email_list
